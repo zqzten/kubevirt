@@ -138,7 +138,8 @@ fi
 
 # Ensure that a bazel server is running
 if [ -z "$($KUBEVIRT_CRI ps --format '{{.Names}}' | grep ${BUILDER}-bazel-server)" ]; then
-    $KUBEVIRT_CRI run --ulimit nofile=10000:10000 --network host -d ${volumes} --security-opt "label=disable" --name ${BUILDER}-bazel-server -w "/root/go/src/kubevirt.io/kubevirt" --rm ${KUBEVIRT_BUILDER_IMAGE} hack/bazel-server.sh
+    $KUBEVIRT_CRI run --env "GOPROXY=https://goproxy.cn" --env "GONOPROXY=modernc.org" --ulimit nofile=10000:10000 --network host -d ${volumes} --security-opt "label=disable" --name ${BUILDER}-bazel-server -w "/root/go/src/kubevirt.io/kubevirt" --rm ${KUBEVIRT_BUILDER_IMAGE} hack/bazel-server.sh
+    $KUBEVIRT_CRI logs -f ${BUILDER}-bazel-server &
 fi
 
 # Update cert trust, if custom is provided
