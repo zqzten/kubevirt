@@ -229,6 +229,16 @@ func DefaultMacvtapNetworkInterface(ifaceName string) *Interface {
 	return iface
 }
 
+func DefaultRouterNetworkInterface() *Interface {
+	iface := &Interface{
+		Name: "default",
+		InterfaceBindingMethod: InterfaceBindingMethod{
+			Router: &InterfaceRouter{},
+		},
+	}
+	return iface
+}
+
 func DefaultPodNetwork() *Network {
 	defaultNet := &Network{
 		Name: "default",

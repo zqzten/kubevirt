@@ -5229,6 +5229,8 @@ var CRDsValidation map[string]string = map[string]string{
                                   - port
                                   type: object
                                 type: array
+                              router:
+                                type: object
                               slirp:
                                 type: object
                               sriov:
@@ -8473,6 +8475,8 @@ var CRDsValidation map[string]string = map[string]string{
                           - port
                           type: object
                         type: array
+                      router:
+                        type: object
                       slirp:
                         type: object
                       sriov:
@@ -10586,6 +10590,8 @@ var CRDsValidation map[string]string = map[string]string{
                           - port
                           type: object
                         type: array
+                      router:
+                        type: object
                       slirp:
                         type: object
                       sriov:
@@ -12664,6 +12670,8 @@ var CRDsValidation map[string]string = map[string]string{
                                   - port
                                   type: object
                                 type: array
+                              router:
+                                type: object
                               slirp:
                                 type: object
                               sriov:
@@ -16285,6 +16293,8 @@ var CRDsValidation map[string]string = map[string]string{
                                           - port
                                           type: object
                                         type: array
+                                      router:
+                                        type: object
                                       slirp:
                                         type: object
                                       sriov:
@@ -20279,6 +20289,8 @@ var CRDsValidation map[string]string = map[string]string{
                                               - port
                                               type: object
                                             type: array
+                                          router:
+                                            type: object
                                           slirp:
                                             type: object
                                           sriov:

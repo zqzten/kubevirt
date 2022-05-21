@@ -13658,6 +13658,9 @@
        "$ref": "#/definitions/v1.Port"
       }
      },
+     "router": {
+      "$ref": "#/definitions/v1.InterfaceRouter"
+     },
      "slirp": {
       "$ref": "#/definitions/v1.InterfaceSlirp"
      },
@@ -13677,6 +13680,9 @@
     "type": "object"
    },
    "v1.InterfaceMasquerade": {
+    "type": "object"
+   },
+   "v1.InterfaceRouter": {
     "type": "object"
    },
    "v1.InterfaceSRIOV": {
