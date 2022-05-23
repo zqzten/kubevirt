@@ -49,6 +49,25 @@ type ConfigGenerator interface {
 	Generate() (*cache.DHCPConfig, error)
 }
 
+func NewRouterConfigurator(cacheCreator cacheCreator, launcherPID string, advertisingIfaceName string, handler netdriver.NetworkHandler, podInterfaceName string,
+	vmiSpecIfaces []v1.Interface, vmiSpecIface *v1.Interface, subdomain string) *configurator {
+	return &configurator{
+		podInterfaceName:     podInterfaceName,
+		advertisingIfaceName: advertisingIfaceName,
+		handler:              handler,
+		dhcpStartedDirectory: defaultDHCPStartedDirectory,
+		configGenerator: &RouterConfigGenerator{
+			handler:          handler,
+			podInterfaceName: podInterfaceName,
+			cacheCreator:     cacheCreator,
+			launcherPID:      launcherPID,
+			vmiSpecIfaces:    vmiSpecIfaces,
+			vmiSpecIface:     vmiSpecIface,
+			subdomain:        subdomain,
+		},
+	}
+}
+
 func NewBridgeConfigurator(cacheCreator cacheCreator, launcherPID string, advertisingIfaceName string, handler netdriver.NetworkHandler, podInterfaceName string,
 	vmiSpecIfaces []v1.Interface, vmiSpecIface *v1.Interface, subdomain string) *configurator {
 	return &configurator{

@@ -33,6 +33,7 @@ import (
 	netdriver "kubevirt.io/kubevirt/pkg/network/driver"
 	"kubevirt.io/kubevirt/pkg/network/errors"
 	"kubevirt.io/kubevirt/pkg/network/infraconfigurators"
+	virtnetlink "kubevirt.io/kubevirt/pkg/network/link"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
@@ -75,6 +76,12 @@ func newPhase1PodNIC(vmi *v1.VirtualMachineInstance, network *v1.Network, handle
 			podnic.vmiSpecIface,
 			generateInPodBridgeInterfaceName(podnic.podInterfaceName),
 			podnic.vmiSpecNetwork,
+			*podnic.launcherPID,
+			podnic.handler)
+	} else if podnic.vmiSpecIface.Router != nil {
+		podnic.infraConfigurator = infraconfigurators.NewRouterPodNetworkConfigurator(
+			podnic.vmi,
+			podnic.vmiSpecIface,
 			*podnic.launcherPID,
 			podnic.handler)
 	}
@@ -280,6 +287,15 @@ func (l *podNIC) newDHCPConfigurator() dhcpconfigurator.Configurator {
 			l.vmiSpecNetwork,
 			l.podInterfaceName,
 			l.vmi.Spec.Subdomain)
+	} else if l.vmiSpecIface.Router != nil {
+		dhcpConfigurator = dhcpconfigurator.NewRouterConfigurator(l.cacheCreator,
+			getPIDString(l.launcherPID),
+			virtnetlink.GenerateInPodBridgeInterfaceName(l.podInterfaceName),
+			l.handler,
+			l.podInterfaceName,
+			l.vmi.Spec.Domain.Devices.Interfaces,
+			l.vmiSpecIface,
+			l.vmi.Spec.Subdomain)
 	}
 	return dhcpConfigurator
 }
@@ -303,6 +319,9 @@ func (l *podNIC) newLibvirtSpecGenerator(domain *api.Domain) domainspec.LibvirtS
 	}
 	if l.vmiSpecIface.Macvtap != nil {
 		return domainspec.NewMacvtapLibvirtSpecGenerator(l.vmiSpecIface, domain, l.podInterfaceName, l.handler)
+	}
+	if l.vmiSpecIface.Router != nil {
+		return domainspec.NewRouterLibvirtSpecGenerator(l.vmiSpecIface, l.vmiSpecNetwork, domain, l.podInterfaceName, l.handler)
 	}
 	return nil
 }

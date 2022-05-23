@@ -84,7 +84,7 @@ func createDomainInterfaces(vmi *v1.VirtualMachineInstance, domain *api.Domain, 
 			domainIface.Address = addr
 		}
 
-		if iface.Bridge != nil || iface.Masquerade != nil {
+		if iface.Bridge != nil || iface.Masquerade != nil || iface.Router != nil {
 			// TODO:(ihar) consider abstracting interface type conversion /
 			// detection into drivers
 

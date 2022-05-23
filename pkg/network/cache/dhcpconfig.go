@@ -83,15 +83,17 @@ type DHCPConfig struct {
 	AdvertisingIPAddr   net.IP
 	AdvertisingIPv6Addr net.IP
 	Routes              *[]netlink.Route
+	IPv6Routes          *[]netlink.Route
 	Mtu                 uint16
 	IPAMDisabled        bool
 	Gateway             net.IP
+	IPv6Gateway         net.IP
 	Subdomain           string
 }
 
 func (d DHCPConfig) String() string {
 	return fmt.Sprintf(
-		"DHCPConfig: { Name: %s, IPv4: %s, IPv6: %s, MAC: %s, AdvertisingIPAddr: %s, MTU: %d, Gateway: %s, IPAMDisabled: %t}",
+		"DHCPConfig: { Name: %s, IPv4: %s, IPv6: %s, MAC: %s, AdvertisingIPAddr: %s, MTU: %d, V4Gateway: %s, IPAMDisabled: %t}",
 		d.Name,
 		d.IP,
 		d.IPv6,
