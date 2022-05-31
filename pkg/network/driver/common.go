@@ -53,11 +53,19 @@ const (
 	LibvirtUserAndGroupId       = "0"
 )
 
+var (
+	_, DefaultIPv4Dst, _ = net.ParseCIDR("0.0.0.0/0")
+	_, DefaultIPv6Dst, _ = net.ParseCIDR("::/0")
+)
+
 type NetworkHandler interface {
 	LinkByName(name string) (netlink.Link, error)
 	AddrList(link netlink.Link, family int) ([]netlink.Addr, error)
 	ReadIPAddressesFromLink(interfaceName string) (string, string, error)
+	ReadIPv4AndIPv6AddrFromLink(interfaceName string) (*netlink.Addr, *netlink.Addr, error)
 	RouteList(link netlink.Link, family int) ([]netlink.Route, error)
+	RouteAdd(route *netlink.Route) error
+	NeighAdd(neigh *netlink.Neigh) error
 	AddrDel(link netlink.Link, addr *netlink.Addr) error
 	AddrAdd(link netlink.Link, addr *netlink.Addr) error
 	AddrReplace(link netlink.Link, addr *netlink.Addr) error
@@ -85,6 +93,10 @@ type NetworkHandler interface {
 	CreateTapDevice(tapName string, queueNumber uint32, launcherPID int, mtu int, tapOwner string) error
 	BindTapDeviceToBridge(tapName string, bridgeName string) error
 	DisableTXOffloadChecksum(ifaceName string) error
+	EnableIPv6Flags() error
+	EnableIpv4ArpProxyOnIface(ifaceName string) error
+	EnableIpv6NdpProxyOnIface(ifaceName string) error
+	GetDefaultGateway(family int) (net.IP, error)
 }
 
 type NetworkUtilsHandler struct{}
@@ -97,6 +109,44 @@ func (h *NetworkUtilsHandler) AddrList(link netlink.Link, family int) ([]netlink
 }
 func (h *NetworkUtilsHandler) RouteList(link netlink.Link, family int) ([]netlink.Route, error) {
 	return netlink.RouteList(link, family)
+}
+func (h *NetworkUtilsHandler) GetDefaultGateway(family int) (net.IP, error) {
+	routes, err := netlink.RouteList(nil, family)
+	if err != nil {
+		return nil, err
+	}
+	defaultDst := DefaultIPv4Dst
+	if family == netlink.FAMILY_V6 {
+		defaultDst = DefaultIPv6Dst
+	}
+	for _, route := range routes {
+		if route.Dst != nil && !ipNetEqual(route.Dst, defaultDst) {
+			continue
+		}
+		if route.Gw != nil {
+			return route.Gw, nil
+		}
+	}
+	return nil, fmt.Errorf("gateway not found for family: %d", family)
+}
+func ipNetEqual(ipn1 *net.IPNet, ipn2 *net.IPNet) bool {
+	if ipn1 == ipn2 {
+		return true
+	}
+	if ipn1 == nil || ipn2 == nil {
+		return false
+	}
+	m1, _ := ipn1.Mask.Size()
+	m2, _ := ipn2.Mask.Size()
+	return m1 == m2 && ipn1.IP.Equal(ipn2.IP)
+}
+func (h *NetworkUtilsHandler) RouteAdd(route *netlink.Route) error {
+	log.Log.Infof("RouteAdd: %+v", route)
+	return netlink.RouteAdd(route)
+}
+func (h *NetworkUtilsHandler) NeighAdd(neigh *netlink.Neigh) error {
+	log.Log.Infof("NeighAdd: %+v", neigh)
+	return netlink.NeighAdd(neigh)
 }
 func (h *NetworkUtilsHandler) AddrReplace(link netlink.Link, addr *netlink.Addr) error {
 	return netlink.AddrReplace(link, addr)
@@ -147,6 +197,22 @@ func (h *NetworkUtilsHandler) HasNatIptables(proto iptables.Protocol) bool {
 func (h *NetworkUtilsHandler) ConfigureIpv4ArpIgnore() error {
 	err := sysctl.New().SetSysctl(sysctl.Ipv4ArpIgnoreAll, 1)
 	return err
+}
+
+func (h *NetworkUtilsHandler) EnableIpv4ArpProxyOnIface(ifaceName string) error {
+	err := sysctl.New().SetSysctl(fmt.Sprintf(sysctl.Ipv4ProxyArpTpl, ifaceName), 1)
+	return err
+}
+
+func (h *NetworkUtilsHandler) EnableIPv6Flags() error {
+	if err := sysctl.New().SetSysctl(sysctl.Ipv6DisableAll, 0); err != nil {
+		return err
+	}
+	return sysctl.New().SetSysctl(sysctl.Ipv6DisableDefault, 0)
+}
+
+func (h *NetworkUtilsHandler) EnableIpv6NdpProxyOnIface(ifaceName string) error {
+	return sysctl.New().SetSysctl(fmt.Sprintf(sysctl.Ipv6ProxyNdpTpl, ifaceName), 1)
 }
 
 func (h *NetworkUtilsHandler) ConfigureIpForwarding(proto iptables.Protocol) error {
@@ -285,6 +351,41 @@ func (h *NetworkUtilsHandler) ReadIPAddressesFromLink(interfaceName string) (str
 				ipv6 = addr.IP.String()
 			} else if !netutils.IsIPv6(addr.IP) && ipv4 == "" {
 				ipv4 = addr.IP.String()
+			}
+		}
+	}
+
+	return ipv4, ipv6, nil
+}
+
+func (h *NetworkUtilsHandler) ReadIPv4AndIPv6AddrFromLink(interfaceName string) (*netlink.Addr, *netlink.Addr, error) {
+	link, err := h.LinkByName(interfaceName)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to get a link for interface: %s", interfaceName)
+		return nil, nil, err
+	}
+
+	// get IP address
+	addrList, err := h.AddrList(link, netlink.FAMILY_ALL)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to get a address for interface: %s", interfaceName)
+		return nil, nil, err
+	}
+
+	// no ip assigned. ipam disabled
+	if len(addrList) == 0 {
+		return nil, nil, nil
+	}
+
+	var ipv4 *netlink.Addr
+	var ipv6 *netlink.Addr
+	for _, addr := range addrList {
+		if addr.IP.IsGlobalUnicast() {
+			// remove useless label
+			if netutils.IsIPv6(addr.IP) && ipv6 == nil {
+				ipv6, _ = netlink.ParseAddr(addr.IPNet.String())
+			} else if !netutils.IsIPv6(addr.IP) && ipv4 == nil {
+				ipv4, _ = netlink.ParseAddr(addr.IPNet.String())
 			}
 		}
 	}

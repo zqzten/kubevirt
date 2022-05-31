@@ -22,6 +22,8 @@
 package infraconfigurators
 
 import (
+	"encoding/json"
+
 	"kubevirt.io/kubevirt/pkg/network/cache"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 
@@ -56,4 +58,30 @@ func calculateNetworkQueues(vmi *v1.VirtualMachineInstance) uint32 {
 func isMultiqueue(vmi *v1.VirtualMachineInstance) bool {
 	return (vmi.Spec.Domain.Devices.NetworkInterfaceMultiQueue != nil) &&
 		(*vmi.Spec.Domain.Devices.NetworkInterfaceMultiQueue)
+}
+
+// reserved port is always NAT to server in pod network ns
+const RESERVED_PORTS_ANNOTATION = "kubevirt.io/reserved-ports"
+
+var default_reserved_ports = []v1.Port{
+	{
+		Name:     "vnc",
+		Port:     5900,
+		Protocol: "TCP",
+	},
+	{
+		Name:     "vnc-ws",
+		Port:     5901,
+		Protocol: "TCP",
+	},
+}
+
+func reservedPortsInPod(vmi *v1.VirtualMachineInstance) []v1.Port {
+	data, exists := vmi.GetAnnotations()[RESERVED_PORTS_ANNOTATION]
+	if !exists {
+		return default_reserved_ports
+	}
+	ports := make([]v1.Port, 0)
+	_ = json.Unmarshal([]byte(data), &ports)
+	return ports
 }

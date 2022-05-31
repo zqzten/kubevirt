@@ -69,6 +69,18 @@ func (_mr *_MockNetworkHandlerRecorder) ReadIPAddressesFromLink(arg0 interface{}
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "ReadIPAddressesFromLink", arg0)
 }
 
+func (_m *MockNetworkHandler) ReadIPv4AndIPv6AddrFromLink(interfaceName string) (*netlink.Addr, *netlink.Addr, error) {
+	ret := _m.ctrl.Call(_m, "ReadIPv4AndIPv6AddrFromLink", interfaceName)
+	ret0, _ := ret[0].(*netlink.Addr)
+	ret1, _ := ret[1].(*netlink.Addr)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+func (_mr *_MockNetworkHandlerRecorder) ReadIPv4AndIPv6AddrFromLink(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "ReadIPv4AndIPv6AddrFromLink", arg0)
+}
+
 func (_m *MockNetworkHandler) RouteList(link netlink.Link, family int) ([]netlink.Route, error) {
 	ret := _m.ctrl.Call(_m, "RouteList", link, family)
 	ret0, _ := ret[0].([]netlink.Route)
@@ -78,6 +90,26 @@ func (_m *MockNetworkHandler) RouteList(link netlink.Link, family int) ([]netlin
 
 func (_mr *_MockNetworkHandlerRecorder) RouteList(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "RouteList", arg0, arg1)
+}
+
+func (_m *MockNetworkHandler) RouteAdd(route *netlink.Route) error {
+	ret := _m.ctrl.Call(_m, "RouteAdd", route)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) RouteAdd(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "RouteAdd", arg0)
+}
+
+func (_m *MockNetworkHandler) NeighAdd(neigh *netlink.Neigh) error {
+	ret := _m.ctrl.Call(_m, "NeighAdd", neigh)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) NeighAdd(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "NeighAdd", arg0)
 }
 
 func (_m *MockNetworkHandler) AddrDel(link netlink.Link, addr *netlink.Addr) error {
@@ -363,4 +395,45 @@ func (_m *MockNetworkHandler) DisableTXOffloadChecksum(ifaceName string) error {
 
 func (_mr *_MockNetworkHandlerRecorder) DisableTXOffloadChecksum(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "DisableTXOffloadChecksum", arg0)
+}
+
+func (_m *MockNetworkHandler) EnableIPv6Flags() error {
+	ret := _m.ctrl.Call(_m, "EnableIPv6Flags")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) EnableIPv6Flags() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "EnableIPv6Flags")
+}
+
+func (_m *MockNetworkHandler) EnableIpv4ArpProxyOnIface(ifaceName string) error {
+	ret := _m.ctrl.Call(_m, "EnableIpv4ArpProxyOnIface", ifaceName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) EnableIpv4ArpProxyOnIface(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "EnableIpv4ArpProxyOnIface", arg0)
+}
+
+func (_m *MockNetworkHandler) EnableIpv6NdpProxyOnIface(ifaceName string) error {
+	ret := _m.ctrl.Call(_m, "EnableIpv6NdpProxyOnIface", ifaceName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) EnableIpv6NdpProxyOnIface(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "EnableIpv6NdpProxyOnIface", arg0)
+}
+
+func (_m *MockNetworkHandler) GetDefaultGateway(family int) (net.IP, error) {
+	ret := _m.ctrl.Call(_m, "GetDefaultGateway", family)
+	ret0, _ := ret[0].(net.IP)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockNetworkHandlerRecorder) GetDefaultGateway(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetDefaultGateway", arg0)
 }

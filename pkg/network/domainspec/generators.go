@@ -74,6 +74,15 @@ func NewBridgeLibvirtSpecGenerator(iface *v1.Interface, domain *api.Domain, cach
 	}
 }
 
+func NewRouterLibvirtSpecGenerator(iface *v1.Interface, vmiSpecNetwork *v1.Network, domain *api.Domain, podInterfaceName string, handler netdriver.NetworkHandler) *RouterLibvirtSpecGenerator {
+	return &RouterLibvirtSpecGenerator{
+		vmiSpecIface:     iface,
+		domain:           domain,
+		podInterfaceName: podInterfaceName,
+		handler:          handler,
+	}
+}
+
 type BridgeLibvirtSpecGenerator struct {
 	vmiSpecIface          *v1.Interface
 	domain                *api.Domain
@@ -252,4 +261,53 @@ func (b *MacvtapLibvirtSpecGenerator) discoverDomainIfaceSpec() (*api.Interface,
 			Managed: "no",
 		},
 	}, nil
+}
+
+type RouterLibvirtSpecGenerator struct {
+	vmiSpecIface     *v1.Interface
+	domain           *api.Domain
+	handler          netdriver.NetworkHandler
+	podInterfaceName string
+}
+
+func (b *RouterLibvirtSpecGenerator) Generate() error {
+	domainIface, err := b.discoverDomainIfaceSpec()
+	if err != nil {
+		return err
+	}
+	ifaces := b.domain.Spec.Devices.Interfaces
+	for i, iface := range ifaces {
+		if iface.Alias.GetName() == b.vmiSpecIface.Name {
+			ifaces[i].MTU = domainIface.MTU
+			ifaces[i].MAC = domainIface.MAC
+			ifaces[i].Target = domainIface.Target
+			break
+		}
+	}
+	return nil
+}
+
+func (b *RouterLibvirtSpecGenerator) discoverDomainIfaceSpec() (*api.Interface, error) {
+	var domainIface api.Interface
+	podNicLink, err := b.handler.LinkByName(b.podInterfaceName)
+	if err != nil {
+		log.Log.Reason(err).Errorf(linkIfaceFailFmt, b.podInterfaceName)
+		return nil, err
+	}
+
+	mac, err := virtnetlink.RetrieveMacAddressFromVMISpecIface(b.vmiSpecIface)
+	if err != nil {
+		return nil, err
+	}
+
+	domainIface.MTU = &api.MTU{Size: strconv.Itoa(podNicLink.Attrs().MTU)}
+	domainIface.Target = &api.InterfaceTarget{
+		Device:  virtnetlink.GenerateTapDeviceName(podNicLink.Attrs().Name),
+		Managed: "no",
+	}
+
+	if mac != nil {
+		domainIface.MAC = &api.MAC{MAC: mac.String()}
+	}
+	return &domainIface, nil
 }

@@ -17,6 +17,7 @@ go_library(
         "//pkg/network/driver:go_default_library",
         "//pkg/network/errors:go_default_library",
         "//pkg/network/infraconfigurators:go_default_library",
+        "//pkg/network/link:go_default_library",
         "//pkg/network/netns:go_default_library",
         "//pkg/network/vmispec:go_default_library",
         "//pkg/virt-launcher/virtwrap/api:go_default_library",
