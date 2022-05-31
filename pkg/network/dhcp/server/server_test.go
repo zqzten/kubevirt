@@ -225,7 +225,7 @@ var _ = Describe("DHCP Server", func() {
 				err           error
 				clientMask    []byte
 				routerIP      net.IP
-				dnsIPs        [][]byte
+				dnsIPs        []net.IP
 				routes        *[]netlink.Route
 				hostname      string
 				searchDomains []string

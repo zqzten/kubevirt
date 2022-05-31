@@ -55,7 +55,7 @@ func SingleClientDHCPServer(
 	serverIface string,
 	serverIP net.IP,
 	routerIP net.IP,
-	dnsIPs [][]byte,
+	dnsIPs []net.IP,
 	routes *[]netlink.Route,
 	searchDomains []string,
 	mtu uint16,
@@ -96,7 +96,7 @@ func SingleClientDHCPServer(
 func prepareDHCPOptions(
 	clientMask net.IPMask,
 	routerIP net.IP,
-	dnsIPs [][]byte,
+	dnsIPs []net.IP,
 	routes *[]netlink.Route,
 	searchDomains []string,
 	mtu uint16,
@@ -106,8 +106,12 @@ func prepareDHCPOptions(
 	mtuArray := make([]byte, 2)
 	binary.BigEndian.PutUint16(mtuArray, mtu)
 
+	dnsIPArray := make([][]byte, 0)
+	for _, dnsIP := range dnsIPs {
+		dnsIPArray = append(dnsIPArray, dnsIP)
+	}
 	dhcpOptions := dhcp.Options{
-		dhcp.OptionDomainNameServer: bytes.Join(dnsIPs, nil),
+		dhcp.OptionDomainNameServer: bytes.Join(dnsIPArray, nil),
 		dhcp.OptionInterfaceMTU:     mtuArray,
 	}
 

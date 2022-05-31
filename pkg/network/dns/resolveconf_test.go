@@ -10,26 +10,51 @@ import (
 
 var _ = Describe("Resolveconf", func() {
 	Context("Function ParseNameservers()", func() {
-		It("should return a byte array of nameservers", func() {
-			ns1, ns2 := []uint8{8, 8, 8, 8}, []uint8{8, 8, 4, 4}
+		It("[IPv4] should return a byte array of nameservers", func() {
+			ns1, ns2 := net.IPv4(8, 8, 8, 8), net.IPv4(8, 8, 4, 4)
 			resolvConf := "nameserver 8.8.8.8\nnameserver 8.8.4.4\n"
-			nameservers, err := ParseNameservers(resolvConf)
-			Expect(nameservers).To(Equal([][]uint8{ns1, ns2}))
+			ipv4Nameservers, _, err := ParseNameservers(resolvConf)
+			Expect(ipv4Nameservers).To(Equal([]net.IP{ns1, ns2}))
 			Expect(err).To(BeNil())
 		})
 
-		It("should ignore non-nameserver lines and malformed nameserver lines", func() {
-			ns1, ns2 := []uint8{8, 8, 8, 8}, []uint8{8, 8, 4, 4}
+		It("[IPv4] should ignore non-nameserver lines and malformed nameserver lines", func() {
+			ns1, ns2 := net.IPv4(8, 8, 8, 8), net.IPv4(8, 8, 4, 4)
 			resolvConf := "search example.com\nnameserver 8.8.8.8\nnameserver 8.8.4.4\nnameserver mynameserver\n"
-			nameservers, err := ParseNameservers(resolvConf)
-			Expect(nameservers).To(Equal([][]uint8{ns1, ns2}))
+			ipv4Nameservers, _, err := ParseNameservers(resolvConf)
+			Expect(ipv4Nameservers).To(Equal([]net.IP{ns1, ns2}))
 			Expect(err).To(BeNil())
 		})
 
 		It("should return a default nameserver if none is parsed", func() {
-			nameservers, err := ParseNameservers("")
-			expectedDNS := net.ParseIP(defaultDNS).To4()
-			Expect(nameservers).To(Equal([][]uint8{expectedDNS}))
+			ipv4Nameservers, ipv6Nameservers, err := ParseNameservers("")
+			Expect(ipv4Nameservers).To(Equal([]net.IP{net.ParseIP(defaultIPv4DNS)}))
+			Expect(ipv6Nameservers).To(BeEmpty())
+			Expect(err).To(BeNil())
+		})
+
+		It("[IPv6] should return a byte array of nameservers", func() {
+			ns1, ns2 := net.ParseIP("2001:4860:4860::8888"), net.ParseIP("2001:4860:4860::8844")
+			resolvConf := "nameserver 2001:4860:4860::8888\nnameserver 2001:4860:4860::8844\n"
+			_, ipv6Nameservers, err := ParseNameservers(resolvConf)
+			Expect(ipv6Nameservers).To(Equal([]net.IP{ns1, ns2}))
+			Expect(err).To(BeNil())
+		})
+
+		It("[IPv6] should ignore non-nameserver lines and malformed nameserver lines", func() {
+			ns1, ns2 := net.ParseIP("2001:4860:4860::8888"), net.ParseIP("2001:4860:4860::8844")
+			resolvConf := "search example.com\nnameserver 2001:4860:4860::8888\nnameserver 2001:4860:4860::8844\nnameserver mynameserver\n"
+			_, ipv6Nameservers, err := ParseNameservers(resolvConf)
+			Expect(ipv6Nameservers).To(Equal([]net.IP{ns1, ns2}))
+			Expect(err).To(BeNil())
+		})
+
+		It("[IPv4 & IPv6] should return a byte array of nameservers", func() {
+			ns1, ns2 := net.ParseIP("2001:4860:4860::8888"), net.ParseIP("8.8.8.8")
+			resolvConf := "nameserver 2001:4860:4860::8888\nnameserver 8.8.8.8\n"
+			ipv4Nameservers, ipv6Nameservers, err := ParseNameservers(resolvConf)
+			Expect(ipv4Nameservers).To(Equal([]net.IP{ns2}))
+			Expect(ipv6Nameservers).To(Equal([]net.IP{ns1}))
 			Expect(err).To(BeNil())
 		})
 	})
@@ -57,7 +82,7 @@ var _ = Describe("Resolveconf", func() {
 		})
 
 		It("should handle non-presence of search domains by returning default search domain", func() {
-			resolvConf := fmt.Sprintf("nameserver %s\n", defaultDNS)
+			resolvConf := fmt.Sprintf("nameserver %s\n", defaultIPv4DNS)
 			searchDomains, err := ParseSearchDomains(resolvConf)
 			Expect(searchDomains).To(Equal([]string{defaultSearchDomain}))
 			Expect(err).To(BeNil())
