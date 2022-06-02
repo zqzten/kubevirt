@@ -440,7 +440,7 @@ func (h *NetworkUtilsHandler) SetRandomMac(iface string) (net.HardwareAddr, erro
 
 func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceName string, dhcpOptions *v1.DHCPOptions) error {
 	log.Log.V(4).Infof("StartDHCP network Nic: %+v", nic)
-	nameservers, searchDomains, err := converter.GetResolvConfDetailsFromPod()
+	ipv4Nameservers, ipv6Nameservers, searchDomains, err := converter.GetResolvConfDetailsFromPod()
 	if err != nil {
 		return fmt.Errorf("Failed to get DNS servers from resolv.conf: %v", err)
 	}
@@ -460,7 +460,7 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceNa
 			bridgeInterfaceName,
 			nic.AdvertisingIPAddr,
 			nic.Gateway,
-			nameservers,
+			ipv4Nameservers,
 			nic.Routes,
 			searchDomains,
 			nic.Mtu,
@@ -476,6 +476,8 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceNa
 			if err = DHCPv6Server(
 				nic.IPv6.IP,
 				bridgeInterfaceName,
+				ipv6Nameservers,
+				searchDomains,
 			); err != nil {
 				log.Log.Reason(err).Error("failed to run DHCPv6")
 				panic(err)

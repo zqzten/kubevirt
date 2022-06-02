@@ -26,10 +26,14 @@ import (
 )
 
 const (
-	sysctlBase        = "/proc/sys"
-	NetIPv6Forwarding = "net/ipv6/conf/all/forwarding"
-	NetIPv4Forwarding = "net/ipv4/ip_forward"
-	Ipv4ArpIgnoreAll  = "net/ipv4/conf/all/arp_ignore"
+	sysctlBase         = "/proc/sys"
+	NetIPv6Forwarding  = "net/ipv6/conf/all/forwarding"
+	NetIPv4Forwarding  = "net/ipv4/ip_forward"
+	Ipv4ArpIgnoreAll   = "net/ipv4/conf/all/arp_ignore"
+	Ipv6DisableAll     = "net/ipv6/conf/all/disable_ipv6"
+	Ipv6DisableDefault = "net/ipv6/conf/default/disable_ipv6"
+	Ipv6ProxyNdpTpl    = "net/ipv6/conf/%s/proxy_ndp"
+	Ipv4ProxyArpTpl    = "net/ipv4/conf/%s/proxy_arp"
 )
 
 // Interface is an injectable interface for running sysctl commands.
