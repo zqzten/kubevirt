@@ -20,7 +20,6 @@
 package converter
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -254,7 +253,7 @@ func configVMCIDR(qemuArg *api.Arg, network v1.Network) error {
 }
 
 func configDNSSearchName(qemuArg *api.Arg) error {
-	_, dnsDoms, err := GetResolvConfDetailsFromPod()
+	_, _, dnsDoms, err := GetResolvConfDetailsFromPod()
 	if err != nil {
 		return err
 	}
@@ -265,26 +264,27 @@ func configDNSSearchName(qemuArg *api.Arg) error {
 	return nil
 }
 
-// returns nameservers [][]byte, searchdomains []string, error
-func GetResolvConfDetailsFromPod() ([][]byte, []string, error) {
+// returns IPv4 nameservers []net.IP, IPv6 nameservers []net.IP, searchdomains []string, error
+func GetResolvConfDetailsFromPod() ([]net.IP, []net.IP, []string, error) {
 	// #nosec No risk for path injection. resolvConf is static "/etc/resolve.conf"
 	b, err := ioutil.ReadFile(resolvConf)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	nameservers, err := dns.ParseNameservers(string(b))
+	ipv4Nameservers, ipv6Nameservers, err := dns.ParseNameservers(string(b))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	searchDomains, err := dns.ParseSearchDomains(string(b))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	log.Log.Reason(err).Infof("Found nameservers in %s: %s", resolvConf, bytes.Join(nameservers, []byte{' '}))
+	log.Log.Reason(err).Infof("Found IPv4 nameservers in %s: %+v", resolvConf, ipv4Nameservers)
+	log.Log.Reason(err).Infof("Found IPv6 nameservers in %s: %+v", resolvConf, ipv6Nameservers)
 	log.Log.Reason(err).Infof("Found search domains in %s: %s", resolvConf, strings.Join(searchDomains, " "))
 
-	return nameservers, searchDomains, err
+	return ipv4Nameservers, ipv6Nameservers, searchDomains, err
 }

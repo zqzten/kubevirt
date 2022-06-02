@@ -10,40 +10,46 @@ import (
 const (
 	domainSearchPrefix  = "search"
 	nameserverPrefix    = "nameserver"
-	defaultDNS          = "8.8.8.8"
+	defaultIPv4DNS      = "8.8.8.8"
 	defaultSearchDomain = "cluster.local"
 )
 
-func ParseNameservers(content string) ([][]byte, error) {
-	var nameservers [][]byte
+var (
+	reIPv4 = regexp.MustCompile("([0-9]{1,3}.?){4}")
+	reIPv6 = regexp.MustCompile("([a-f0-9:]+:+)+[a-f0-9]+")
+)
 
-	re, err := regexp.Compile("([0-9]{1,3}.?){4}")
-	if err != nil {
-		return nameservers, err
-	}
+// returns IPv4 nameservers []net.IP, IPv6 nameservers []net.IP, error
+func ParseNameservers(content string) ([]net.IP, []net.IP, error) {
+	var ipv4Nameservers []net.IP
+	var ipv6Nameservers []net.IP
 
 	scanner := bufio.NewScanner(strings.NewReader(content))
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, nameserverPrefix) {
-			nameserver := re.FindString(line)
-			if nameserver != "" {
-				nameservers = append(nameservers, net.ParseIP(nameserver).To4())
+			// try match IPv6 address first, due to the IPv4-mapped IPv6 address
+			if nameserver := net.ParseIP(reIPv6.FindString(line)); nameserver != nil {
+				ipv6Nameservers = append(ipv6Nameservers, nameserver)
+				continue
+			}
+			if nameserver := net.ParseIP(reIPv4.FindString(line)); nameserver != nil {
+				ipv4Nameservers = append(ipv4Nameservers, nameserver)
 			}
 		}
 	}
 
-	if err = scanner.Err(); err != nil {
-		return nameservers, err
+	if err := scanner.Err(); err != nil {
+		return ipv4Nameservers, ipv6Nameservers, err
 	}
 
 	// apply a default DNS if none found from pod
-	if len(nameservers) == 0 {
-		nameservers = append(nameservers, net.ParseIP(defaultDNS).To4())
+	if len(ipv4Nameservers) == 0 && len(ipv6Nameservers) == 0 {
+		ipv4Nameservers = append(ipv4Nameservers, net.ParseIP(defaultIPv4DNS))
 	}
 
-	return nameservers, nil
+	return ipv4Nameservers, ipv6Nameservers, nil
 }
 
 func ParseSearchDomains(content string) ([]string, error) {

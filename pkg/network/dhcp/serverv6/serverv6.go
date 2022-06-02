@@ -36,11 +36,13 @@ const (
 )
 
 type DHCPv6Handler struct {
-	clientIP  net.IP
-	modifiers []dhcpv6.Modifier
+	serverMacAddr net.HardwareAddr
+	clientIP      net.IP
+	dnsIPs        []net.IP
+	searchDomains []string
 }
 
-func SingleClientDHCPv6Server(clientIP net.IP, serverIfaceName string) error {
+func SingleClientDHCPv6Server(clientIP net.IP, serverIfaceName string, dnsIPs []net.IP, searchDomains []string) error {
 	log.Log.Info("Starting SingleClientDHCPv6Server")
 
 	iface, err := net.InterfaceByName(serverIfaceName)
@@ -48,11 +50,11 @@ func SingleClientDHCPv6Server(clientIP net.IP, serverIfaceName string) error {
 		return fmt.Errorf("couldn't create DHCPv6 server, couldn't get the dhcp6 server interface: %v", err)
 	}
 
-	modifiers := prepareDHCPv6Modifiers(clientIP, iface.HardwareAddr)
-
 	handler := &DHCPv6Handler{
-		clientIP:  clientIP,
-		modifiers: modifiers,
+		serverMacAddr: iface.HardwareAddr,
+		clientIP:      clientIP,
+		dnsIPs:        dnsIPs,
+		searchDomains: searchDomains,
 	}
 
 	conn, err := NewConnection(iface)
@@ -81,7 +83,7 @@ func (h *DHCPv6Handler) ServeDHCPv6(conn net.PacketConn, peer net.Addr, m dhcpv6
 	response, err := h.buildResponse(m)
 	if err != nil {
 		log.Log.V(4).Reason(err).Error("DHCPv6 failed building a response to the client")
-
+		return
 	}
 
 	if _, err := conn.WriteTo(response.ToBytes(), peer); err != nil {
@@ -90,38 +92,60 @@ func (h *DHCPv6Handler) ServeDHCPv6(conn net.PacketConn, peer net.Addr, m dhcpv6
 }
 
 func (h *DHCPv6Handler) buildResponse(msg dhcpv6.DHCPv6) (*dhcpv6.Message, error) {
-	var response *dhcpv6.Message
-	var err error
-
 	dhcpv6Msg := msg.(*dhcpv6.Message)
 	switch dhcpv6Msg.Type() {
 	case dhcpv6.MessageTypeSolicit:
 		log.Log.V(4).Info("DHCPv6 - the request has message type Solicit")
-		if dhcpv6Msg.GetOneOption(dhcpv6.OptionRapidCommit) == nil {
-			response, err = dhcpv6.NewAdvertiseFromSolicit(dhcpv6Msg, h.modifiers...)
-		} else {
+		if dhcpv6Msg.GetOneOption(dhcpv6.OptionRapidCommit) != nil {
 			log.Log.V(4).Info("DHCPv6 - replying with rapid commit")
-			response, err = dhcpv6.NewReplyFromMessage(dhcpv6Msg, h.modifiers...)
+			return dhcpv6.NewReplyFromMessage(dhcpv6Msg, []dhcpv6.Modifier{
+				buildDUIDModifier(h.serverMacAddr),
+				buildIAIDModifier(dhcpv6Msg),
+				buildIAAddressModifier(h.clientIP),
+				dhcpv6.WithDNS(h.dnsIPs...),
+				dhcpv6.WithDomainSearchList(h.searchDomains...),
+			}...)
+		} else {
+			log.Log.V(4).Info("DHCPv6 - replying with advertise")
+			return dhcpv6.NewAdvertiseFromSolicit(dhcpv6Msg, []dhcpv6.Modifier{
+				buildDUIDModifier(h.serverMacAddr),
+				buildIAIDModifier(dhcpv6Msg),
+				buildIAAddressModifier(h.clientIP),
+			}...)
 		}
+	case dhcpv6.MessageTypeRequest:
+		log.Log.V(4).Info("DHCPv6 - the request has message type Request")
+		log.Log.V(4).Info("DHCPv6 - replying with reply")
+		return dhcpv6.NewReplyFromMessage(dhcpv6Msg, []dhcpv6.Modifier{
+			buildDUIDModifier(h.serverMacAddr),
+			buildIAIDModifier(dhcpv6Msg),
+			buildIAAddressModifier(h.clientIP),
+			dhcpv6.WithDNS(h.dnsIPs...),
+			dhcpv6.WithDomainSearchList(h.searchDomains...),
+		}...)
 	default:
-		log.Log.V(4).Info("DHCPv6 - non Solicit request received")
-		response, err = dhcpv6.NewReplyFromMessage(dhcpv6Msg, h.modifiers...)
+		log.Log.V(4).Infof("DHCPv6 - %s request received", dhcpv6Msg.Type().String())
+		return dhcpv6.NewReplyFromMessage(dhcpv6Msg, buildDUIDModifier(h.serverMacAddr))
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	ianaRequest := dhcpv6Msg.Options.OneIANA()
-	ianaResponse := response.Options.OneIANA()
-	ianaResponse.IaId = ianaRequest.IaId
-	response.UpdateOption(ianaResponse)
-	return response, nil
 }
 
-func prepareDHCPv6Modifiers(clientIP net.IP, serverInterfaceMac net.HardwareAddr) []dhcpv6.Modifier {
-	optIAAddress := dhcpv6.OptIAAddress{IPv6Addr: clientIP, PreferredLifetime: infiniteLease, ValidLifetime: infiniteLease}
-	duid := dhcpv6.Duid{Type: dhcpv6.DUID_LL, HwType: iana.HWTypeEthernet, LinkLayerAddr: serverInterfaceMac}
+func buildIAIDModifier(recvMsg *dhcpv6.Message) dhcpv6.Modifier {
+	return func(d dhcpv6.DHCPv6) {
+		ianaRequest := recvMsg.Options.OneIANA()
+		if ianaRequest == nil || len(ianaRequest.IaId) == 0 {
+			log.Log.V(4).Errorf("DHCPv6 - recv message does not contain IAID")
+			return
+		}
+		dhcpv6.WithIAID(ianaRequest.IaId)(d)
+	}
+}
 
-	return []dhcpv6.Modifier{dhcpv6.WithIANA(optIAAddress), dhcpv6.WithServerID(duid)}
+func buildDUIDModifier(serverInterfaceMac net.HardwareAddr) dhcpv6.Modifier {
+	duid := dhcpv6.Duid{Type: dhcpv6.DUID_LL, HwType: iana.HWTypeEthernet, LinkLayerAddr: serverInterfaceMac}
+	return dhcpv6.WithServerID(duid)
+}
+
+func buildIAAddressModifier(clientIP net.IP) dhcpv6.Modifier {
+	optIAAddress := dhcpv6.OptIAAddress{IPv6Addr: clientIP, PreferredLifetime: infiniteLease, ValidLifetime: infiniteLease}
+	return dhcpv6.WithIANA(optIAAddress)
 }
