@@ -3,19 +3,15 @@ package ndp
 import (
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/mdlayher/ndp"
 	"golang.org/x/net/ipv6"
 )
 
 const (
-	chkOff              = 2
-	exportSocketTimeout = 2 * time.Minute
-	importSocketTimeout = time.Minute
-	maxHops             = 255
-	raBufferSize        = 128
-	unixLocalNetwork    = "unix"
+	chkOff       = 2
+	maxHops      = 255
+	raBufferSize = 128
 )
 
 // A NDPConnection instruments a system.Conn and adds retry functionality for
