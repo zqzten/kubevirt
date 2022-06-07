@@ -160,12 +160,6 @@ func (b *RouterPodNetworkConfigurator) PreparePodNetworkInterface() error {
 		return err
 	}
 
-	if b.ipv6Enabled {
-		if err := b.handler.CreateAndExportNDPConnection(b.bridgeDeviceName, b.launcherPID); err != nil {
-			log.Log.Criticalf("could not start the Router Advertiser: %v", err)
-		}
-	}
-
 	return nil
 }
 

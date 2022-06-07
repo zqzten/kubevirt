@@ -1138,8 +1138,7 @@ func (t *templateService) renderLaunchManifest(vmi *v1.VirtualMachineInstance, i
 			RunAsUser:  &userId,
 			Privileged: &privileged,
 			Capabilities: &k8sv1.Capabilities{
-				Add:  capabilities,
-				Drop: []k8sv1.Capability{CAP_NET_RAW},
+				Add: capabilities,
 			},
 		},
 		Command:       command,
