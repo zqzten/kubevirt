@@ -453,24 +453,26 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceNa
 
 	// panic in case the DHCP server failed during the vm creation
 	// but ignore dhcp errors when the vm is destroyed or shutting down
-	go func() {
-		if err = DHCPServer(
-			nic.MAC,
-			nic.IP.IP,
-			nic.IP.Mask,
-			bridgeInterfaceName,
-			nic.AdvertisingIPAddr,
-			nic.Gateway,
-			ipv4Nameservers,
-			nic.Routes,
-			searchDomains,
-			nic.Mtu,
-			dhcpOptions,
-		); err != nil {
-			log.Log.Errorf("failed to run DHCP: %v", err)
-			panic(err)
-		}
-	}()
+	if nic.IP.IPNet != nil {
+		go func() {
+			if err = DHCPServer(
+				nic.MAC,
+				nic.IP.IP,
+				nic.IP.Mask,
+				bridgeInterfaceName,
+				nic.AdvertisingIPAddr,
+				nic.Gateway,
+				ipv4Nameservers,
+				nic.Routes,
+				searchDomains,
+				nic.Mtu,
+				dhcpOptions,
+			); err != nil {
+				log.Log.Errorf("failed to run DHCP: %v", err)
+				panic(err)
+			}
+		}()
+	}
 
 	if nic.IPv6.IPNet != nil {
 		go func() {
@@ -511,6 +513,7 @@ func (h *NetworkUtilsHandler) startRouterAdvertiser(nic *cache.DHCPConfig, bridg
 	go func() {
 		if err := routerAdvertiser.Serve(); err != nil {
 			log.Log.Criticalf("could not listen via the Router Advertisement daemon to incoming requests: %v", err)
+			panic(err)
 		}
 	}()
 
