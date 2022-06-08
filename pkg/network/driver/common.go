@@ -44,6 +44,7 @@ import (
 	dhcpserverv6 "kubevirt.io/kubevirt/pkg/network/dhcp/serverv6"
 	"kubevirt.io/kubevirt/pkg/network/dns"
 	"kubevirt.io/kubevirt/pkg/network/link"
+	"kubevirt.io/kubevirt/pkg/network/ndp"
 	"kubevirt.io/kubevirt/pkg/virt-handler/selinux"
 )
 
@@ -452,24 +453,26 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceNa
 
 	// panic in case the DHCP server failed during the vm creation
 	// but ignore dhcp errors when the vm is destroyed or shutting down
-	go func() {
-		if err = DHCPServer(
-			nic.MAC,
-			nic.IP.IP,
-			nic.IP.Mask,
-			bridgeInterfaceName,
-			nic.AdvertisingIPAddr,
-			nic.Gateway,
-			ipv4Nameservers,
-			nic.Routes,
-			searchDomains,
-			nic.Mtu,
-			dhcpOptions,
-		); err != nil {
-			log.Log.Errorf("failed to run DHCP: %v", err)
-			panic(err)
-		}
-	}()
+	if nic.IP.IPNet != nil {
+		go func() {
+			if err = DHCPServer(
+				nic.MAC,
+				nic.IP.IP,
+				nic.IP.Mask,
+				bridgeInterfaceName,
+				nic.AdvertisingIPAddr,
+				nic.Gateway,
+				ipv4Nameservers,
+				nic.Routes,
+				searchDomains,
+				nic.Mtu,
+				dhcpOptions,
+			); err != nil {
+				log.Log.Errorf("failed to run DHCP: %v", err)
+				panic(err)
+			}
+		}()
+	}
 
 	if nic.IPv6.IPNet != nil {
 		go func() {
@@ -483,7 +486,40 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *cache.DHCPConfig, bridgeInterfaceNa
 				panic(err)
 			}
 		}()
+		if err := h.startRouterAdvertiser(nic, bridgeInterfaceName, dhcpOptions); err != nil {
+			log.Log.Criticalf("could not start the Router Advertiser: %v", err)
+			return err
+		}
 	}
+
+	return nil
+}
+
+func (h *NetworkUtilsHandler) startRouterAdvertiser(nic *cache.DHCPConfig, bridgeInterfaceName string, dhcpOptions *v1.DHCPOptions) error {
+	bridge, err := h.LinkByName(bridgeInterfaceName)
+	if err != nil {
+		return err
+	}
+
+	advertiseIPv6Addr := fmt.Sprintf("%s/%d", nic.IPv6.IP.String(), 8*net.IPv6len)
+	routerSourceMacAddr := bridge.Attrs().HardwareAddr
+	log.Log.Infof("will advertise %s on interface %s w/ the following link src addr: %s", advertiseIPv6Addr, bridgeInterfaceName, routerSourceMacAddr.String())
+
+	routerAdvertiser, err := ndp.CreateRouterAdvertisementServer(bridgeInterfaceName, advertiseIPv6Addr, routerSourceMacAddr, dhcpOptions)
+	if err != nil {
+		return fmt.Errorf("failed to create the RouterAdvertisement daemon on virt-launcher: %v", err)
+	}
+
+	go func() {
+		if err := routerAdvertiser.Serve(); err != nil {
+			log.Log.Criticalf("could not listen via the Router Advertisement daemon to incoming requests: %v", err)
+			panic(err)
+		}
+	}()
+
+	go func() {
+		routerAdvertiser.PeriodicallySendRAs()
+	}()
 
 	return nil
 }
