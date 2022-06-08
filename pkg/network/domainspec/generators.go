@@ -74,12 +74,13 @@ func NewBridgeLibvirtSpecGenerator(iface *v1.Interface, domain *api.Domain, cach
 	}
 }
 
-func NewRouterLibvirtSpecGenerator(iface *v1.Interface, vmiSpecNetwork *v1.Network, domain *api.Domain, podInterfaceName string, handler netdriver.NetworkHandler) *RouterLibvirtSpecGenerator {
+func NewRouterLibvirtSpecGenerator(iface *v1.Interface, vmiSpecNetwork *v1.Network, domain *api.Domain, cachedDomainInterface api.Interface, podInterfaceName string, handler netdriver.NetworkHandler) *RouterLibvirtSpecGenerator {
 	return &RouterLibvirtSpecGenerator{
-		vmiSpecIface:     iface,
-		domain:           domain,
-		podInterfaceName: podInterfaceName,
-		handler:          handler,
+		vmiSpecIface:          iface,
+		domain:                domain,
+		cachedDomainInterface: cachedDomainInterface,
+		podInterfaceName:      podInterfaceName,
+		handler:               handler,
 	}
 }
 
@@ -264,10 +265,11 @@ func (b *MacvtapLibvirtSpecGenerator) discoverDomainIfaceSpec() (*api.Interface,
 }
 
 type RouterLibvirtSpecGenerator struct {
-	vmiSpecIface     *v1.Interface
-	domain           *api.Domain
-	handler          netdriver.NetworkHandler
-	podInterfaceName string
+	vmiSpecIface          *v1.Interface
+	domain                *api.Domain
+	cachedDomainInterface api.Interface
+	handler               netdriver.NetworkHandler
+	podInterfaceName      string
 }
 
 func (b *RouterLibvirtSpecGenerator) Generate() error {
@@ -295,9 +297,17 @@ func (b *RouterLibvirtSpecGenerator) discoverDomainIfaceSpec() (*api.Interface, 
 		return nil, err
 	}
 
-	mac, err := virtnetlink.RetrieveMacAddressFromVMISpecIface(b.vmiSpecIface)
-	if err != nil {
+	// if user specify mac address, generate VM with the mac address
+	// else generate VM with cached mac address(Pod eth0 old mac address)
+	if mac, err := virtnetlink.RetrieveMacAddressFromVMISpecIface(b.vmiSpecIface); err != nil {
 		return nil, err
+	} else if mac != nil {
+		domainIface.MAC = &api.MAC{MAC: mac.String()}
+	} else {
+		if b.cachedDomainInterface.MAC == nil {
+			return nil, fmt.Errorf("should use cached mac address(Pod eth0 old mac address), but not found")
+		}
+		domainIface.MAC = b.cachedDomainInterface.MAC
 	}
 
 	domainIface.MTU = &api.MTU{Size: strconv.Itoa(podNicLink.Attrs().MTU)}
@@ -306,8 +316,5 @@ func (b *RouterLibvirtSpecGenerator) discoverDomainIfaceSpec() (*api.Interface, 
 		Managed: "no",
 	}
 
-	if mac != nil {
-		domainIface.MAC = &api.MAC{MAC: mac.String()}
-	}
 	return &domainIface, nil
 }
