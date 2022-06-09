@@ -1938,14 +1938,12 @@ func newDeviceNamer(volumeStatuses []v1.VolumeStatus, disks []v1.Disk) map[strin
 	return prefixMap
 }
 
+// Libvirt < 5.2.0, not support virtio transitional device
+// https://libvirt.org/formatdomain.html#virtio-transitional-devices
 func translateModel(ctx *ConverterContext, bus string) string {
 	switch bus {
 	case "virtio":
-		if ctx.UseVirtioTransitional {
-			return "virtio-transitional"
-		} else {
-			return "virtio-non-transitional"
-		}
+		return "virtio"
 	default:
 		return bus
 	}

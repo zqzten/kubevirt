@@ -82,6 +82,7 @@ const qemuTimeoutJitterRange = 120
 const (
 	CAP_NET_BIND_SERVICE = "NET_BIND_SERVICE"
 	CAP_NET_RAW          = "NET_RAW"
+	CAP_NET_ADMIN        = "NET_ADMIN"
 	CAP_SYS_ADMIN        = "SYS_ADMIN"
 	CAP_SYS_NICE         = "SYS_NICE"
 )
@@ -1818,6 +1819,10 @@ func getRequiredCapabilities(vmi *v1.VirtualMachineInstance, config *virtconfig.
 		capabilities = append(capabilities, CAP_SYS_ADMIN)
 		capabilities = append(capabilities, getVirtiofsCapabilities()...)
 	}
+
+	// Libvirt supported no-managed tap device since 5.8.0
+	// so virt-launcher need capability to configure tap device
+	capabilities = append(capabilities, CAP_NET_ADMIN)
 	return capabilities
 }
 
