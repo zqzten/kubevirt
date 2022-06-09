@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,10 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "storage_volume_wrapper.h"
+#include "storage_volume_compat.h"
 */
 import "C"
 
@@ -37,14 +39,14 @@ import (
 	"unsafe"
 )
 
-type StorageVolCreateFlags uint
+type StorageVolCreateFlags int
 
 const (
 	STORAGE_VOL_CREATE_PREALLOC_METADATA = StorageVolCreateFlags(C.VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA)
 	STORAGE_VOL_CREATE_REFLINK           = StorageVolCreateFlags(C.VIR_STORAGE_VOL_CREATE_REFLINK)
 )
 
-type StorageVolDeleteFlags uint
+type StorageVolDeleteFlags int
 
 const (
 	STORAGE_VOL_DELETE_NORMAL         = StorageVolDeleteFlags(C.VIR_STORAGE_VOL_DELETE_NORMAL)         // Delete metadata only (fast)
@@ -52,7 +54,7 @@ const (
 	STORAGE_VOL_DELETE_WITH_SNAPSHOTS = StorageVolDeleteFlags(C.VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS) // Force removal of volume, even if in use
 )
 
-type StorageVolResizeFlags uint
+type StorageVolResizeFlags int
 
 const (
 	STORAGE_VOL_RESIZE_ALLOCATE = StorageVolResizeFlags(C.VIR_STORAGE_VOL_RESIZE_ALLOCATE) // force allocation of new size
@@ -86,26 +88,26 @@ const (
 	STORAGE_VOL_WIPE_ALG_TRIM       = StorageVolWipeAlgorithm(C.VIR_STORAGE_VOL_WIPE_ALG_TRIM)       // Trim the underlying storage
 )
 
-type StorageXMLFlags uint
+type StorageXMLFlags int
 
 const (
 	STORAGE_XML_INACTIVE = StorageXMLFlags(C.VIR_STORAGE_XML_INACTIVE)
 )
 
-type StorageVolInfoFlags uint
+type StorageVolInfoFlags int
 
 const (
 	STORAGE_VOL_USE_ALLOCATION = StorageVolInfoFlags(C.VIR_STORAGE_VOL_USE_ALLOCATION)
 	STORAGE_VOL_GET_PHYSICAL   = StorageVolInfoFlags(C.VIR_STORAGE_VOL_GET_PHYSICAL)
 )
 
-type StorageVolUploadFlags uint
+type StorageVolUploadFlags int
 
 const (
 	STORAGE_VOL_UPLOAD_SPARSE_STREAM = StorageVolUploadFlags(C.VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM)
 )
 
-type StorageVolDownloadFlags uint
+type StorageVolDownloadFlags int
 
 const (
 	STORAGE_VOL_DOWNLOAD_SPARSE_STREAM = StorageVolDownloadFlags(C.VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM)
@@ -123,30 +125,27 @@ type StorageVolInfo struct {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolDelete
 func (v *StorageVol) Delete(flags StorageVolDeleteFlags) error {
-	var err C.virError
-	result := C.virStorageVolDeleteWrapper(v.ptr, C.uint(flags), &err)
+	result := C.virStorageVolDelete(v.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolFree
 func (v *StorageVol) Free() error {
-	var err C.virError
-	ret := C.virStorageVolFreeWrapper(v.ptr, &err)
+	ret := C.virStorageVolFree(v.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolRef
 func (c *StorageVol) Ref() error {
-	var err C.virError
-	ret := C.virStorageVolRefWrapper(c.ptr, &err)
+	ret := C.virStorageVolRef(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -154,10 +153,9 @@ func (c *StorageVol) Ref() error {
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetInfo
 func (v *StorageVol) GetInfo() (*StorageVolInfo, error) {
 	var cinfo C.virStorageVolInfo
-	var err C.virError
-	result := C.virStorageVolGetInfoWrapper(v.ptr, &cinfo, &err)
+	result := C.virStorageVolGetInfo(v.ptr, &cinfo)
 	if result == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StorageVolInfo{
 		Type:       StorageVolType(cinfo._type),
@@ -169,14 +167,13 @@ func (v *StorageVol) GetInfo() (*StorageVolInfo, error) {
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetInfoFlags
 func (v *StorageVol) GetInfoFlags(flags StorageVolInfoFlags) (*StorageVolInfo, error) {
 	if C.LIBVIR_VERSION_NUMBER < 3000000 {
-		return nil, makeNotImplementedError("virStorageVolGetInfoFlags")
+		return nil, GetNotImplementedError("virStorageVolGetInfoFlags")
 	}
 
 	var cinfo C.virStorageVolInfo
-	var err C.virError
-	result := C.virStorageVolGetInfoFlagsWrapper(v.ptr, &cinfo, C.uint(flags), &err)
+	result := C.virStorageVolGetInfoFlagsCompat(v.ptr, &cinfo, C.uint(flags))
 	if result == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StorageVolInfo{
 		Type:       StorageVolType(cinfo._type),
@@ -187,30 +184,27 @@ func (v *StorageVol) GetInfoFlags(flags StorageVolInfoFlags) (*StorageVolInfo, e
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetKey
 func (v *StorageVol) GetKey() (string, error) {
-	var err C.virError
-	key := C.virStorageVolGetKeyWrapper(v.ptr, &err)
+	key := C.virStorageVolGetKey(v.ptr)
 	if key == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(key), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetName
 func (v *StorageVol) GetName() (string, error) {
-	var err C.virError
-	name := C.virStorageVolGetNameWrapper(v.ptr, &err)
+	name := C.virStorageVolGetName(v.ptr)
 	if name == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(name), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetPath
 func (v *StorageVol) GetPath() (string, error) {
-	var err C.virError
-	result := C.virStorageVolGetPathWrapper(v.ptr, &err)
+	result := C.virStorageVolGetPath(v.ptr)
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	path := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -219,10 +213,9 @@ func (v *StorageVol) GetPath() (string, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolGetXMLDesc
 func (v *StorageVol) GetXMLDesc(flags uint32) (string, error) {
-	var err C.virError
-	result := C.virStorageVolGetXMLDescWrapper(v.ptr, C.uint(flags), &err)
+	result := C.virStorageVolGetXMLDesc(v.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -231,60 +224,53 @@ func (v *StorageVol) GetXMLDesc(flags uint32) (string, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolResize
 func (v *StorageVol) Resize(capacity uint64, flags StorageVolResizeFlags) error {
-	var err C.virError
-	result := C.virStorageVolResizeWrapper(v.ptr, C.ulonglong(capacity), C.uint(flags), &err)
+	result := C.virStorageVolResize(v.ptr, C.ulonglong(capacity), C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolWipe
 func (v *StorageVol) Wipe(flags uint32) error {
-	var err C.virError
-	result := C.virStorageVolWipeWrapper(v.ptr, C.uint(flags), &err)
+	result := C.virStorageVolWipe(v.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
-
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolWipePattern
 func (v *StorageVol) WipePattern(algorithm StorageVolWipeAlgorithm, flags uint32) error {
-	var err C.virError
-	result := C.virStorageVolWipePatternWrapper(v.ptr, C.uint(algorithm), C.uint(flags), &err)
+	result := C.virStorageVolWipePattern(v.ptr, C.uint(algorithm), C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolUpload
 func (v *StorageVol) Upload(stream *Stream, offset, length uint64, flags StorageVolUploadFlags) error {
-	var err C.virError
-	if C.virStorageVolUploadWrapper(v.ptr, stream.ptr, C.ulonglong(offset),
-		C.ulonglong(length), C.uint(flags), &err) == -1 {
-		return makeError(&err)
+	if C.virStorageVolUpload(v.ptr, stream.ptr, C.ulonglong(offset),
+		C.ulonglong(length), C.uint(flags)) == -1 {
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStorageVolDownload
 func (v *StorageVol) Download(stream *Stream, offset, length uint64, flags StorageVolDownloadFlags) error {
-	var err C.virError
-	if C.virStorageVolDownloadWrapper(v.ptr, stream.ptr, C.ulonglong(offset),
-		C.ulonglong(length), C.uint(flags), &err) == -1 {
-		return makeError(&err)
+	if C.virStorageVolDownload(v.ptr, stream.ptr, C.ulonglong(offset),
+		C.ulonglong(length), C.uint(flags)) == -1 {
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolLookupByVolume
 func (v *StorageVol) LookupPoolByVolume() (*StoragePool, error) {
-	var err C.virError
-	poolPtr := C.virStoragePoolLookupByVolumeWrapper(v.ptr, &err)
+	poolPtr := C.virStoragePoolLookupByVolume(v.ptr)
 	if poolPtr == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StoragePool{ptr: poolPtr}, nil
 }

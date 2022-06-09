@@ -1,7 +1,7 @@
 // +build !without_lxc
 
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,9 +33,12 @@ package libvirt
 // Can't rely on pkg-config for libvirt-lxc since it was not
 // installed until 2.6.0 onwards
 #cgo LDFLAGS: -lvirt-lxc
+#include <libvirt/libvirt.h>
+#include <libvirt/libvirt-lxc.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lxc_wrapper.h"
+#include "lxc_compat.h"
 */
 import "C"
 
@@ -47,10 +50,9 @@ import (
 func (d *Domain) LxcOpenNamespace(flags uint32) ([]os.File, error) {
 	var cfdlist *C.int
 
-	var err C.virError
-	ret := C.virDomainLxcOpenNamespaceWrapper(d.ptr, &cfdlist, C.uint(flags), &err)
+	ret := C.virDomainLxcOpenNamespace(d.ptr, &cfdlist, C.uint(flags))
 	if ret == -1 {
-		return []os.File{}, makeError(&err)
+		return []os.File{}, GetLastError()
 	}
 	fdlist := make([]os.File, ret)
 	for i := 0; i < int(ret); i++ {
@@ -70,10 +72,9 @@ func (d *Domain) LxcEnterNamespace(fdlist []os.File, flags uint32) ([]os.File, e
 		cfdlist[i] = C.int(fdlist[i].Fd())
 	}
 
-	var err C.virError
-	ret := C.virDomainLxcEnterNamespaceWrapper(d.ptr, C.uint(len(fdlist)), &cfdlist[0], &ncoldfdlist, &coldfdlist, C.uint(flags), &err)
+	ret := C.virDomainLxcEnterNamespace(d.ptr, C.uint(len(fdlist)), &cfdlist[0], &ncoldfdlist, &coldfdlist, C.uint(flags))
 	if ret == -1 {
-		return []os.File{}, makeError(&err)
+		return []os.File{}, GetLastError()
 	}
 	oldfdlist := make([]os.File, ncoldfdlist)
 	for i := 0; i < int(ncoldfdlist); i++ {
@@ -121,10 +122,9 @@ func DomainLxcEnterSecurityLabel(model *NodeSecurityModel, label *SecurityLabel,
 		clabel.enforcing = 0
 	}
 
-	var err C.virError
-	ret := C.virDomainLxcEnterSecurityLabelWrapper(&cmodel, &clabel, &coldlabel, C.uint(flags), &err)
+	ret := C.virDomainLxcEnterSecurityLabel(&cmodel, &clabel, &coldlabel, C.uint(flags))
 	if ret == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 
 	var oldlabel SecurityLabel
@@ -141,14 +141,13 @@ func DomainLxcEnterSecurityLabel(model *NodeSecurityModel, label *SecurityLabel,
 
 func (d *Domain) DomainLxcEnterCGroup(flags uint32) error {
 	if C.LIBVIR_VERSION_NUMBER < 2000000 {
-		return makeNotImplementedError("virDomainLxcEnterCGroup")
+		return GetNotImplementedError("virDomainLxcEnterCGroup")
 	}
 
-	var err C.virError
-	ret := C.virDomainLxcEnterCGroupWrapper(d.ptr, C.uint(flags), &err)
+	ret := C.virDomainLxcEnterCGroupCompat(d.ptr, C.uint(flags))
 
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 
 	return nil

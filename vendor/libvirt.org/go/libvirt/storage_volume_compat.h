@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,10 @@
 #define LIBVIRT_GO_STORAGE_VOLUME_COMPAT_H__
 
 /* 3.0.0 */
+
+int virStorageVolGetInfoFlagsCompat(virStorageVolPtr vol,
+				    virStorageVolInfoPtr info,
+				    unsigned int flags);
 
 #ifndef VIR_STORAGE_VOL_USE_ALLOCATION
 #define VIR_STORAGE_VOL_USE_ALLOCATION 0

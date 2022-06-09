@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,10 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "nwfilter_binding_wrapper.h"
+#include "nwfilter_binding_compat.h"
 */
 import "C"
 
@@ -43,12 +45,11 @@ type NWFilterBinding struct {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingFree
 func (f *NWFilterBinding) Free() error {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return makeNotImplementedError("virNWFilterBindingFree")
+		return GetNotImplementedError("virNWFilterBindingFree")
 	}
-	var err C.virError
-	ret := C.virNWFilterBindingFreeWrapper(f.ptr, &err)
+	ret := C.virNWFilterBindingFreeCompat(f.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -56,12 +57,11 @@ func (f *NWFilterBinding) Free() error {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingRef
 func (c *NWFilterBinding) Ref() error {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return makeNotImplementedError("virNWFilterBindingRef")
+		return GetNotImplementedError("virNWFilterBindingRef")
 	}
-	var err C.virError
-	ret := C.virNWFilterBindingRefWrapper(c.ptr, &err)
+	ret := C.virNWFilterBindingRefCompat(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -69,12 +69,11 @@ func (c *NWFilterBinding) Ref() error {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingDelete
 func (f *NWFilterBinding) Delete() error {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return makeNotImplementedError("virNWFilterBindingDelete")
+		return GetNotImplementedError("virNWFilterBindingDelete")
 	}
-	var err C.virError
-	result := C.virNWFilterBindingDeleteWrapper(f.ptr, &err)
+	result := C.virNWFilterBindingDeleteCompat(f.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -82,12 +81,11 @@ func (f *NWFilterBinding) Delete() error {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingGetPortDev
 func (f *NWFilterBinding) GetPortDev() (string, error) {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return "", makeNotImplementedError("virNWFilterBindingGetPortDev")
+		return "", GetNotImplementedError("virNWFilterBindingGetPortDev")
 	}
-	var err C.virError
-	result := C.virNWFilterBindingGetPortDevWrapper(f.ptr, &err)
+	result := C.virNWFilterBindingGetPortDevCompat(f.ptr)
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	name := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -97,12 +95,11 @@ func (f *NWFilterBinding) GetPortDev() (string, error) {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingGetFilterName
 func (f *NWFilterBinding) GetFilterName() (string, error) {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return "", makeNotImplementedError("virNWFilterBindingGetFilterName")
+		return "", GetNotImplementedError("virNWFilterBindingGetFilterName")
 	}
-	var err C.virError
-	result := C.virNWFilterBindingGetFilterNameWrapper(f.ptr, &err)
+	result := C.virNWFilterBindingGetFilterNameCompat(f.ptr)
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	name := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -112,12 +109,11 @@ func (f *NWFilterBinding) GetFilterName() (string, error) {
 // See also https://libvirt.org/html/libvirt-libvirt-nwfilter.html#virNWFilterBindingGetXMLDesc
 func (f *NWFilterBinding) GetXMLDesc(flags uint32) (string, error) {
 	if C.LIBVIR_VERSION_NUMBER < 4005000 {
-		return "", makeNotImplementedError("virNWFilterBindingGetXMLDesc")
+		return "", GetNotImplementedError("virNWFilterBindingGetXMLDesc")
 	}
-	var err C.virError
-	result := C.virNWFilterBindingGetXMLDescWrapper(f.ptr, C.uint(flags), &err)
+	result := C.virNWFilterBindingGetXMLDescCompat(f.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))

@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,10 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "node_device_wrapper.h"
+#include "node_device_compat.h"
 */
 import "C"
 
@@ -47,10 +49,8 @@ const (
 type NodeDeviceEventLifecycleType int
 
 const (
-	NODE_DEVICE_EVENT_CREATED   = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_CREATED)
-	NODE_DEVICE_EVENT_DELETED   = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_DELETED)
-	NODE_DEVICE_EVENT_DEFINED   = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_DEFINED)
-	NODE_DEVICE_EVENT_UNDEFINED = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_UNDEFINED)
+	NODE_DEVICE_EVENT_CREATED = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_CREATED)
+	NODE_DEVICE_EVENT_DELETED = NodeDeviceEventLifecycleType(C.VIR_NODE_DEVICE_EVENT_DELETED)
 )
 
 type NodeDevice struct {
@@ -59,50 +59,45 @@ type NodeDevice struct {
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceFree
 func (n *NodeDevice) Free() error {
-	var err C.virError
-	ret := C.virNodeDeviceFreeWrapper(n.ptr, &err)
+	ret := C.virNodeDeviceFree(n.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceRef
 func (c *NodeDevice) Ref() error {
-	var err C.virError
-	ret := C.virNodeDeviceRefWrapper(c.ptr, &err)
+	ret := C.virNodeDeviceRef(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceDestroy
 func (n *NodeDevice) Destroy() error {
-	var err C.virError
-	result := C.virNodeDeviceDestroyWrapper(n.ptr, &err)
+	result := C.virNodeDeviceDestroy(n.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceReset
 func (n *NodeDevice) Reset() error {
-	var err C.virError
-	result := C.virNodeDeviceResetWrapper(n.ptr, &err)
+	result := C.virNodeDeviceReset(n.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceDettach
 func (n *NodeDevice) Detach() error {
-	var err C.virError
-	result := C.virNodeDeviceDettachWrapper(n.ptr, &err)
+	result := C.virNodeDeviceDettach(n.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -111,40 +106,36 @@ func (n *NodeDevice) Detach() error {
 func (n *NodeDevice) DetachFlags(driverName string, flags uint32) error {
 	cDriverName := C.CString(driverName)
 	defer C.free(unsafe.Pointer(cDriverName))
-	var err C.virError
-	result := C.virNodeDeviceDetachFlagsWrapper(n.ptr, cDriverName, C.uint(flags), &err)
+	result := C.virNodeDeviceDetachFlags(n.ptr, cDriverName, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceReAttach
 func (n *NodeDevice) ReAttach() error {
-	var err C.virError
-	result := C.virNodeDeviceReAttachWrapper(n.ptr, &err)
+	result := C.virNodeDeviceReAttach(n.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceGetName
 func (n *NodeDevice) GetName() (string, error) {
-	var err C.virError
-	name := C.virNodeDeviceGetNameWrapper(n.ptr, &err)
+	name := C.virNodeDeviceGetName(n.ptr)
 	if name == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(name), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceGetXMLDesc
 func (n *NodeDevice) GetXMLDesc(flags uint32) (string, error) {
-	var err C.virError
-	result := C.virNodeDeviceGetXMLDescWrapper(n.ptr, C.uint(flags), &err)
+	result := C.virNodeDeviceGetXMLDesc(n.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -153,10 +144,9 @@ func (n *NodeDevice) GetXMLDesc(flags uint32) (string, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceGetParent
 func (n *NodeDevice) GetParent() (string, error) {
-	var err C.virError
-	result := C.virNodeDeviceGetParentWrapper(n.ptr, &err)
+	result := C.virNodeDeviceGetParent(n.ptr)
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	defer C.free(unsafe.Pointer(result))
 	return C.GoString(result), nil
@@ -164,10 +154,9 @@ func (n *NodeDevice) GetParent() (string, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceNumOfCaps
 func (p *NodeDevice) NumOfCaps() (int, error) {
-	var err C.virError
-	result := int(C.virNodeDeviceNumOfCapsWrapper(p.ptr, &err))
+	result := int(C.virNodeDeviceNumOfCaps(p.ptr))
 	if result == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return result, nil
 }
@@ -177,13 +166,12 @@ func (p *NodeDevice) ListCaps() ([]string, error) {
 	const maxCaps = 1024
 	var names [maxCaps](*C.char)
 	namesPtr := unsafe.Pointer(&names)
-	var err C.virError
-	numCaps := C.virNodeDeviceListCapsWrapper(
+	numCaps := C.virNodeDeviceListCaps(
 		p.ptr,
 		(**C.char)(namesPtr),
-		maxCaps, &err)
+		maxCaps)
 	if numCaps == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	goNames := make([]string, numCaps)
 	for k := 0; k < int(numCaps); k++ {
@@ -191,30 +179,4 @@ func (p *NodeDevice) ListCaps() ([]string, error) {
 		C.free(unsafe.Pointer(names[k]))
 	}
 	return goNames, nil
-}
-
-// See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceCreate
-func (p *NodeDevice) Create(flags uint32) error {
-	if C.LIBVIR_VERSION_NUMBER < 7003000 {
-		return makeNotImplementedError("virNodeDeviceCreate")
-	}
-	var err C.virError
-	result := C.virNodeDeviceCreateWrapper(p.ptr, C.uint(flags), &err)
-	if result == -1 {
-		return makeError(&err)
-	}
-	return nil
-}
-
-// See also https://libvirt.org/html/libvirt-libvirt-nodedev.html#virNodeDeviceUndefine
-func (p *NodeDevice) Undefine(flags uint32) error {
-	if C.LIBVIR_VERSION_NUMBER < 7003000 {
-		return makeNotImplementedError("virNodeDeviceUndefine")
-	}
-	var err C.virError
-	result := C.virNodeDeviceUndefineWrapper(p.ptr, C.uint(flags), &err)
-	if result == -1 {
-		return makeError(&err)
-	}
-	return nil
 }

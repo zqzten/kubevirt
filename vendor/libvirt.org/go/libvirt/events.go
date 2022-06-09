@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,9 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
 #include <stdint.h>
-#include "events_wrapper.h"
+#include "events_cfuncs.h"
 */
 import "C"
 
@@ -44,19 +45,16 @@ const (
 
 // See also https://libvirt.org/html/libvirt-libvirt-event.html#virEventRegisterDefaultImpl
 func EventRegisterDefaultImpl() error {
-	var err C.virError
-	C.virInitialize()
-	if i := int(C.virEventRegisterDefaultImplWrapper(&err)); i != 0 {
-		return makeError(&err)
+	if i := int(C.virEventRegisterDefaultImpl()); i != 0 {
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-event.html#virEventRunDefaultImpl
 func EventRunDefaultImpl() error {
-	var err C.virError
-	if i := int(C.virEventRunDefaultImplWrapper(&err)); i != 0 {
-		return makeError(&err)
+	if i := int(C.virEventRunDefaultImpl()); i != 0 {
+		return GetLastError()
 	}
 	return nil
 }
@@ -79,10 +77,9 @@ func eventHandleCallback(watch int, fd int, events int, callbackID int) {
 func EventAddHandle(fd int, events EventHandleType, callback EventHandleCallback) (int, error) {
 	callbackID := registerCallbackId(callback)
 
-	var err C.virError
-	ret := C.virEventAddHandleWrapper((C.int)(fd), (C.int)(events), (C.int)(callbackID), &err)
+	ret := C.virEventAddHandle_cgo((C.int)(fd), (C.int)(events), (C.int)(callbackID))
 	if ret == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 
 	return int(ret), nil
@@ -94,14 +91,8 @@ func EventUpdateHandle(watch int, events EventHandleType) {
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-event.html#virEventRemoveHandle
-func EventRemoveHandle(watch int) error {
-	var err C.virError
-	ret := C.virEventRemoveHandleWrapper((C.int)(watch), &err)
-	if ret < 0 {
-		return makeError(&err)
-	}
-
-	return nil
+func EventRemoveHandle(watch int) {
+	C.virEventRemoveHandle((C.int)(watch))
 }
 
 type EventTimeoutCallback func(timer int)
@@ -122,10 +113,9 @@ func eventTimeoutCallback(timer int, callbackID int) {
 func EventAddTimeout(freq int, callback EventTimeoutCallback) (int, error) {
 	callbackID := registerCallbackId(callback)
 
-	var err C.virError
-	ret := C.virEventAddTimeoutWrapper((C.int)(freq), (C.int)(callbackID), &err)
+	ret := C.virEventAddTimeout_cgo((C.int)(freq), (C.int)(callbackID))
 	if ret == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 
 	return int(ret), nil
@@ -137,14 +127,8 @@ func EventUpdateTimeout(timer int, freq int) {
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-event.html#virEventRemoveTimeout
-func EventRemoveTimeout(timer int) error {
-	var err C.virError
-	ret := C.virEventRemoveTimeoutWrapper((C.int)(timer), &err)
-	if ret < 0 {
-		return makeError(&err)
-	}
-
-	return nil
+func EventRemoveTimeout(timer int) {
+	C.virEventRemoveTimeout((C.int)(timer))
 }
 
 type EventHandleCallbackInfo struct {
@@ -189,8 +173,7 @@ var eventLoopImpl EventLoop
 // See also https://libvirt.org/html/libvirt-libvirt-event.html#virEventRegisterImpl
 func EventRegisterImpl(impl EventLoop) {
 	eventLoopImpl = impl
-	C.virInitialize()
-	C.virEventRegisterImplWrapper()
+	C.virEventRegisterImpl_cgo()
 }
 
 //export eventAddHandleFunc

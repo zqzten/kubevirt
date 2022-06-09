@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,10 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "storage_pool_wrapper.h"
+#include "storage_pool_compat.h"
 */
 import "C"
 
@@ -48,7 +50,7 @@ const (
 	STORAGE_POOL_INACCESSIBLE = StoragePoolState(C.VIR_STORAGE_POOL_INACCESSIBLE) // Running,but not accessible
 )
 
-type StoragePoolBuildFlags uint
+type StoragePoolBuildFlags int
 
 const (
 	STORAGE_POOL_BUILD_NEW          = StoragePoolBuildFlags(C.VIR_STORAGE_POOL_BUILD_NEW)          // Regular build from scratch
@@ -58,7 +60,7 @@ const (
 	STORAGE_POOL_BUILD_OVERWRITE    = StoragePoolBuildFlags(C.VIR_STORAGE_POOL_BUILD_OVERWRITE)    // Overwrite data
 )
 
-type StoragePoolCreateFlags uint
+type StoragePoolCreateFlags int
 
 const (
 	STORAGE_POOL_CREATE_NORMAL                  = StoragePoolCreateFlags(C.VIR_STORAGE_POOL_CREATE_NORMAL)
@@ -67,7 +69,7 @@ const (
 	STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE = StoragePoolCreateFlags(C.VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE)
 )
 
-type StoragePoolDeleteFlags uint
+type StoragePoolDeleteFlags int
 
 const (
 	STORAGE_POOL_DELETE_NORMAL = StoragePoolDeleteFlags(C.VIR_STORAGE_POOL_DELETE_NORMAL)
@@ -105,60 +107,54 @@ type StoragePoolInfo struct {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolBuild
 func (p *StoragePool) Build(flags StoragePoolBuildFlags) error {
-	var err C.virError
-	result := C.virStoragePoolBuildWrapper(p.ptr, C.uint(flags), &err)
+	result := C.virStoragePoolBuild(p.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolCreate
 func (p *StoragePool) Create(flags StoragePoolCreateFlags) error {
-	var err C.virError
-	result := C.virStoragePoolCreateWrapper(p.ptr, C.uint(flags), &err)
+	result := C.virStoragePoolCreate(p.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolDelete
 func (p *StoragePool) Delete(flags StoragePoolDeleteFlags) error {
-	var err C.virError
-	result := C.virStoragePoolDeleteWrapper(p.ptr, C.uint(flags), &err)
+	result := C.virStoragePoolDelete(p.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolDestroy
 func (p *StoragePool) Destroy() error {
-	var err C.virError
-	result := C.virStoragePoolDestroyWrapper(p.ptr, &err)
+	result := C.virStoragePoolDestroy(p.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolFree
 func (p *StoragePool) Free() error {
-	var err C.virError
-	ret := C.virStoragePoolFreeWrapper(p.ptr, &err)
+	ret := C.virStoragePoolFree(p.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolRef
 func (c *StoragePool) Ref() error {
-	var err C.virError
-	ret := C.virStoragePoolRefWrapper(c.ptr, &err)
+	ret := C.virStoragePoolRef(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -166,10 +162,9 @@ func (c *StoragePool) Ref() error {
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolGetAutostart
 func (p *StoragePool) GetAutostart() (bool, error) {
 	var out C.int
-	var err C.virError
-	result := C.virStoragePoolGetAutostartWrapper(p.ptr, (*C.int)(unsafe.Pointer(&out)), &err)
+	result := C.virStoragePoolGetAutostart(p.ptr, (*C.int)(unsafe.Pointer(&out)))
 	if result == -1 {
-		return false, makeError(&err)
+		return false, GetLastError()
 	}
 	switch out {
 	case 1:
@@ -182,10 +177,9 @@ func (p *StoragePool) GetAutostart() (bool, error) {
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolGetInfo
 func (p *StoragePool) GetInfo() (*StoragePoolInfo, error) {
 	var cinfo C.virStoragePoolInfo
-	var err C.virError
-	result := C.virStoragePoolGetInfoWrapper(p.ptr, &cinfo, &err)
+	result := C.virStoragePoolGetInfo(p.ptr, &cinfo)
 	if result == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StoragePoolInfo{
 		State:      StoragePoolState(cinfo.state),
@@ -197,10 +191,9 @@ func (p *StoragePool) GetInfo() (*StoragePoolInfo, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolGetName
 func (p *StoragePool) GetName() (string, error) {
-	var err C.virError
-	name := C.virStoragePoolGetNameWrapper(p.ptr, &err)
+	name := C.virStoragePoolGetName(p.ptr)
 	if name == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(name), nil
 }
@@ -209,10 +202,9 @@ func (p *StoragePool) GetName() (string, error) {
 func (p *StoragePool) GetUUID() ([]byte, error) {
 	var cUuid [C.VIR_UUID_BUFLEN](byte)
 	cuidPtr := unsafe.Pointer(&cUuid)
-	var err C.virError
-	result := C.virStoragePoolGetUUIDWrapper(p.ptr, (*C.uchar)(cuidPtr), &err)
+	result := C.virStoragePoolGetUUID(p.ptr, (*C.uchar)(cuidPtr))
 	if result != 0 {
-		return []byte{}, makeError(&err)
+		return []byte{}, GetLastError()
 	}
 	return C.GoBytes(cuidPtr, C.VIR_UUID_BUFLEN), nil
 }
@@ -221,20 +213,18 @@ func (p *StoragePool) GetUUID() ([]byte, error) {
 func (p *StoragePool) GetUUIDString() (string, error) {
 	var cUuid [C.VIR_UUID_STRING_BUFLEN](C.char)
 	cuidPtr := unsafe.Pointer(&cUuid)
-	var err C.virError
-	result := C.virStoragePoolGetUUIDStringWrapper(p.ptr, (*C.char)(cuidPtr), &err)
+	result := C.virStoragePoolGetUUIDString(p.ptr, (*C.char)(cuidPtr))
 	if result != 0 {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString((*C.char)(cuidPtr)), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolGetXMLDesc
 func (p *StoragePool) GetXMLDesc(flags StorageXMLFlags) (string, error) {
-	var err C.virError
-	result := C.virStoragePoolGetXMLDescWrapper(p.ptr, C.uint(flags), &err)
+	result := C.virStoragePoolGetXMLDesc(p.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -243,10 +233,9 @@ func (p *StoragePool) GetXMLDesc(flags StorageXMLFlags) (string, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolIsActive
 func (p *StoragePool) IsActive() (bool, error) {
-	var err C.virError
-	result := C.virStoragePoolIsActiveWrapper(p.ptr, &err)
+	result := C.virStoragePoolIsActive(p.ptr)
 	if result == -1 {
-		return false, makeError(&err)
+		return false, GetLastError()
 	}
 	if result == 1 {
 		return true, nil
@@ -256,10 +245,9 @@ func (p *StoragePool) IsActive() (bool, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolIsPersistent
 func (p *StoragePool) IsPersistent() (bool, error) {
-	var err C.virError
-	result := C.virStoragePoolIsPersistentWrapper(p.ptr, &err)
+	result := C.virStoragePoolIsPersistent(p.ptr)
 	if result == -1 {
-		return false, makeError(&err)
+		return false, GetLastError()
 	}
 	if result == 1 {
 		return true, nil
@@ -276,30 +264,27 @@ func (p *StoragePool) SetAutostart(autostart bool) error {
 	default:
 		cAutostart = 0
 	}
-	var err C.virError
-	result := C.virStoragePoolSetAutostartWrapper(p.ptr, cAutostart, &err)
+	result := C.virStoragePoolSetAutostart(p.ptr, cAutostart)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolRefresh
 func (p *StoragePool) Refresh(flags uint32) error {
-	var err C.virError
-	result := C.virStoragePoolRefreshWrapper(p.ptr, C.uint(flags), &err)
+	result := C.virStoragePoolRefresh(p.ptr, C.uint(flags))
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolUndefine
 func (p *StoragePool) Undefine() error {
-	var err C.virError
-	result := C.virStoragePoolUndefineWrapper(p.ptr, &err)
+	result := C.virStoragePoolUndefine(p.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -308,10 +293,9 @@ func (p *StoragePool) Undefine() error {
 func (p *StoragePool) StorageVolCreateXML(xmlConfig string, flags StorageVolCreateFlags) (*StorageVol, error) {
 	cXml := C.CString(string(xmlConfig))
 	defer C.free(unsafe.Pointer(cXml))
-	var err C.virError
-	ptr := C.virStorageVolCreateXMLWrapper(p.ptr, cXml, C.uint(flags), &err)
+	ptr := C.virStorageVolCreateXML(p.ptr, cXml, C.uint(flags))
 	if ptr == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StorageVol{ptr: ptr}, nil
 }
@@ -320,10 +304,9 @@ func (p *StoragePool) StorageVolCreateXML(xmlConfig string, flags StorageVolCrea
 func (p *StoragePool) StorageVolCreateXMLFrom(xmlConfig string, clonevol *StorageVol, flags StorageVolCreateFlags) (*StorageVol, error) {
 	cXml := C.CString(string(xmlConfig))
 	defer C.free(unsafe.Pointer(cXml))
-	var err C.virError
-	ptr := C.virStorageVolCreateXMLFromWrapper(p.ptr, cXml, clonevol.ptr, C.uint(flags), &err)
+	ptr := C.virStorageVolCreateXMLFrom(p.ptr, cXml, clonevol.ptr, C.uint(flags))
 	if ptr == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StorageVol{ptr: ptr}, nil
 }
@@ -332,20 +315,18 @@ func (p *StoragePool) StorageVolCreateXMLFrom(xmlConfig string, clonevol *Storag
 func (p *StoragePool) LookupStorageVolByName(name string) (*StorageVol, error) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
-	var err C.virError
-	ptr := C.virStorageVolLookupByNameWrapper(p.ptr, cName, &err)
+	ptr := C.virStorageVolLookupByName(p.ptr, cName)
 	if ptr == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &StorageVol{ptr: ptr}, nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolNumOfVolumes
 func (p *StoragePool) NumOfStorageVolumes() (int, error) {
-	var err C.virError
-	result := int(C.virStoragePoolNumOfVolumesWrapper(p.ptr, &err))
+	result := int(C.virStoragePoolNumOfVolumes(p.ptr))
 	if result == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return result, nil
 }
@@ -355,13 +336,12 @@ func (p *StoragePool) ListStorageVolumes() ([]string, error) {
 	const maxVols = 1024
 	var names [maxVols](*C.char)
 	namesPtr := unsafe.Pointer(&names)
-	var err C.virError
-	numStorageVols := C.virStoragePoolListVolumesWrapper(
+	numStorageVols := C.virStoragePoolListVolumes(
 		p.ptr,
 		(**C.char)(namesPtr),
-		maxVols, &err)
+		maxVols)
 	if numStorageVols == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	goNames := make([]string, numStorageVols)
 	for k := 0; k < int(numStorageVols); k++ {
@@ -374,10 +354,9 @@ func (p *StoragePool) ListStorageVolumes() ([]string, error) {
 // See also https://libvirt.org/html/libvirt-libvirt-storage.html#virStoragePoolListAllVolumes
 func (p *StoragePool) ListAllStorageVolumes(flags uint32) ([]StorageVol, error) {
 	var cList *C.virStorageVolPtr
-	var err C.virError
-	numVols := C.virStoragePoolListAllVolumesWrapper(p.ptr, (**C.virStorageVolPtr)(&cList), C.uint(flags), &err)
+	numVols := C.virStoragePoolListAllVolumes(p.ptr, (**C.virStorageVolPtr)(&cList), C.uint(flags))
 	if numVols == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	hdr := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(cList)),

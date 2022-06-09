@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,5 +29,16 @@
 #if LIBVIR_VERSION_NUMBER < 4005000
 typedef struct _virNWFilterBinding *virNWFilterBindingPtr;
 #endif
+
+const char *virNWFilterBindingGetPortDevCompat(virNWFilterBindingPtr binding);
+const char *virNWFilterBindingGetFilterNameCompat(virNWFilterBindingPtr binding);
+
+char *virNWFilterBindingGetXMLDescCompat(virNWFilterBindingPtr binding,
+					 unsigned int flags);
+
+int virNWFilterBindingDeleteCompat(virNWFilterBindingPtr binding);
+int virNWFilterBindingRefCompat(virNWFilterBindingPtr binding);
+int virNWFilterBindingFreeCompat(virNWFilterBindingPtr binding);
+
 
 #endif /* LIBVIRT_GO_NWFILTER_BINDING_COMPAT_H__ */

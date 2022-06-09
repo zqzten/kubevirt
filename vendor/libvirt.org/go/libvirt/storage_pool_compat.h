@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -77,6 +77,10 @@ typedef void (*virConnectStoragePoolEventGenericCallback)(virConnectPtr conn,
                                                           virStoragePoolPtr pool,
                                                           void *opaque);
 #endif
+
+int virConnectStoragePoolEventDeregisterAnyCompat(virConnectPtr conn,
+						  int callbackID);
+
 
 /* 3.8.0 */
 

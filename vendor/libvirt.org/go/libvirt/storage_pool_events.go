@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,9 @@ import (
 
 /*
 #cgo pkg-config: libvirt
-#include "storage_pool_events_wrapper.h"
+#include <libvirt/libvirt.h>
+#include "storage_pool_compat.h"
+#include "storage_pool_events_cfuncs.h"
 */
 import "C"
 
@@ -85,62 +87,58 @@ func storagePoolEventGenericCallback(c C.virConnectPtr, s C.virStoragePoolPtr,
 
 func (c *Connect) StoragePoolEventLifecycleRegister(pool *StoragePool, callback StoragePoolEventLifecycleCallback) (int, error) {
 	if C.LIBVIR_VERSION_NUMBER < 2000000 {
-		return 0, makeNotImplementedError("virConnectStoragePoolEventRegisterAny")
+		return 0, GetNotImplementedError("virConnectStoragePoolEventRegisterAny")
 	}
 
 	goCallBackId := registerCallbackId(callback)
 
-	callbackPtr := unsafe.Pointer(C.storagePoolEventLifecycleCallbackHelper)
+	callbackPtr := unsafe.Pointer(C.storagePoolEventLifecycleCallback_cgo)
 	var cpool C.virStoragePoolPtr
 	if pool != nil {
 		cpool = pool.ptr
 	}
-	var err C.virError
-	ret := C.virConnectStoragePoolEventRegisterAnyWrapper(c.ptr, cpool,
+	ret := C.virConnectStoragePoolEventRegisterAny_cgo(c.ptr, cpool,
 		C.VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE,
 		C.virConnectStoragePoolEventGenericCallback(callbackPtr),
-		C.long(goCallBackId), &err)
+		C.long(goCallBackId))
 	if ret == -1 {
 		freeCallbackId(goCallBackId)
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return int(ret), nil
 }
 
 func (c *Connect) StoragePoolEventRefreshRegister(pool *StoragePool, callback StoragePoolEventGenericCallback) (int, error) {
 	if C.LIBVIR_VERSION_NUMBER < 2000000 {
-		return 0, makeNotImplementedError("virConnectStoragePoolEventRegisterAny")
+		return 0, GetNotImplementedError("virConnectStoragePoolEventRegisterAny")
 	}
 
 	goCallBackId := registerCallbackId(callback)
 
-	callbackPtr := unsafe.Pointer(C.storagePoolEventGenericCallbackHelper)
+	callbackPtr := unsafe.Pointer(C.storagePoolEventGenericCallback_cgo)
 	var cpool C.virStoragePoolPtr
 	if pool != nil {
 		cpool = pool.ptr
 	}
-	var err C.virError
-	ret := C.virConnectStoragePoolEventRegisterAnyWrapper(c.ptr, cpool,
+	ret := C.virConnectStoragePoolEventRegisterAny_cgo(c.ptr, cpool,
 		C.VIR_STORAGE_POOL_EVENT_ID_REFRESH,
 		C.virConnectStoragePoolEventGenericCallback(callbackPtr),
-		C.long(goCallBackId), &err)
+		C.long(goCallBackId))
 	if ret == -1 {
 		freeCallbackId(goCallBackId)
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return int(ret), nil
 }
 
 func (c *Connect) StoragePoolEventDeregister(callbackId int) error {
 	if C.LIBVIR_VERSION_NUMBER < 2000000 {
-		return makeNotImplementedError("virConnectStoragePoolEventDeregisterAny")
+		return GetNotImplementedError("virConnectStoragePoolEventDeregisterAny")
 	}
 
 	// Deregister the callback
-	var err C.virError
-	ret := int(C.virConnectStoragePoolEventDeregisterAnyWrapper(c.ptr, C.int(callbackId), &err))
-	if ret < 0 {
-		return makeError(&err)
+	if i := int(C.virConnectStoragePoolEventDeregisterAnyCompat(c.ptr, C.int(callbackId))); i != 0 {
+		return GetLastError()
 	}
 	return nil
 }

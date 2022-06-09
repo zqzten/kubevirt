@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,9 @@ import (
 
 /*
 #cgo pkg-config: libvirt
-#include "network_events_wrapper.h"
+#include <libvirt/libvirt.h>
+#include "network_compat.h"
+#include "network_events_cfuncs.h"
 */
 import "C"
 
@@ -69,35 +71,32 @@ func networkEventLifecycleCallback(c C.virConnectPtr, n C.virNetworkPtr,
 func (c *Connect) NetworkEventLifecycleRegister(net *Network, callback NetworkEventLifecycleCallback) (int, error) {
 	goCallBackId := registerCallbackId(callback)
 	if C.LIBVIR_VERSION_NUMBER < 1002001 {
-		return 0, makeNotImplementedError("virConnectNetworkEventRegisterAny")
+		return 0, GetNotImplementedError("virConnectNetworkEventRegisterAny")
 	}
 
-	callbackPtr := unsafe.Pointer(C.networkEventLifecycleCallbackHelper)
+	callbackPtr := unsafe.Pointer(C.networkEventLifecycleCallback_cgo)
 	var cnet C.virNetworkPtr
 	if net != nil {
 		cnet = net.ptr
 	}
-	var err C.virError
-	ret := C.virConnectNetworkEventRegisterAnyWrapper(c.ptr, cnet,
+	ret := C.virConnectNetworkEventRegisterAny_cgo(c.ptr, cnet,
 		C.VIR_NETWORK_EVENT_ID_LIFECYCLE,
 		C.virConnectNetworkEventGenericCallback(callbackPtr),
-		C.long(goCallBackId), &err)
+		C.long(goCallBackId))
 	if ret == -1 {
 		freeCallbackId(goCallBackId)
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return int(ret), nil
 }
 
 func (c *Connect) NetworkEventDeregister(callbackId int) error {
 	if C.LIBVIR_VERSION_NUMBER < 1002001 {
-		return makeNotImplementedError("virConnectNetworkEventDeregisterAny")
+		return GetNotImplementedError("virConnectNetworkEventDeregisterAny")
 	}
 	// Deregister the callback
-	var err C.virError
-	ret := int(C.virConnectNetworkEventDeregisterAnyWrapper(c.ptr, C.int(callbackId), &err))
-	if ret < 0 {
-		return makeError(&err)
+	if i := int(C.virConnectNetworkEventDeregisterAnyCompat(c.ptr, C.int(callbackId))); i != 0 {
+		return GetLastError()
 	}
 	return nil
 }
