@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +51,8 @@ typedef void (*virConnectNodeDeviceEventGenericCallback)(virConnectPtr conn,
                                                          void *opaque);
 #endif
 
-#ifndef VIR_NODE_DEVICE_EVENT_DEFINED
-#define VIR_NODE_DEVICE_EVENT_DEFINED 1
-#endif
+int virConnectNodeDeviceEventDeregisterAnyCompat(virConnectPtr conn,
+						 int callbackID);
 
-#ifndef VIR_NODE_DEVICE_EVENT_UNDEFINED
-#define VIR_NODE_DEVICE_EVENT_UNDEFINED 1
-#endif
 
 #endif /* LIBVIRT_GO_NODE_DEVICE_COMPAT_H__ */

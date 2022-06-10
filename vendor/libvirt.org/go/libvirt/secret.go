@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,10 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "secret_wrapper.h"
+#include "secret_compat.h"
 */
 import "C"
 
@@ -45,7 +47,6 @@ const (
 	SECRET_USAGE_TYPE_CEPH   = SecretUsageType(C.VIR_SECRET_USAGE_TYPE_CEPH)
 	SECRET_USAGE_TYPE_ISCSI  = SecretUsageType(C.VIR_SECRET_USAGE_TYPE_ISCSI)
 	SECRET_USAGE_TYPE_TLS    = SecretUsageType(C.VIR_SECRET_USAGE_TYPE_TLS)
-	SECRET_USAGE_TYPE_VTPM   = SecretUsageType(C.VIR_SECRET_USAGE_TYPE_VTPM)
 )
 
 type SecretEventLifecycleType int
@@ -68,30 +69,27 @@ type Secret struct {
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretFree
 func (s *Secret) Free() error {
-	var err C.virError
-	ret := C.virSecretFreeWrapper(s.ptr, &err)
+	ret := C.virSecretFree(s.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretRef
 func (c *Secret) Ref() error {
-	var err C.virError
-	ret := C.virSecretRefWrapper(c.ptr, &err)
+	ret := C.virSecretRef(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretUndefine
 func (s *Secret) Undefine() error {
-	var err C.virError
-	result := C.virSecretUndefineWrapper(s.ptr, &err)
+	result := C.virSecretUndefine(s.ptr)
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
@@ -100,10 +98,9 @@ func (s *Secret) Undefine() error {
 func (s *Secret) GetUUID() ([]byte, error) {
 	var cUuid [C.VIR_UUID_BUFLEN](byte)
 	cuidPtr := unsafe.Pointer(&cUuid)
-	var err C.virError
-	result := C.virSecretGetUUIDWrapper(s.ptr, (*C.uchar)(cuidPtr), &err)
+	result := C.virSecretGetUUID(s.ptr, (*C.uchar)(cuidPtr))
 	if result != 0 {
-		return []byte{}, makeError(&err)
+		return []byte{}, GetLastError()
 	}
 	return C.GoBytes(cuidPtr, C.VIR_UUID_BUFLEN), nil
 }
@@ -112,40 +109,36 @@ func (s *Secret) GetUUID() ([]byte, error) {
 func (s *Secret) GetUUIDString() (string, error) {
 	var cUuid [C.VIR_UUID_STRING_BUFLEN](C.char)
 	cuidPtr := unsafe.Pointer(&cUuid)
-	var err C.virError
-	result := C.virSecretGetUUIDStringWrapper(s.ptr, (*C.char)(cuidPtr), &err)
+	result := C.virSecretGetUUIDString(s.ptr, (*C.char)(cuidPtr))
 	if result != 0 {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString((*C.char)(cuidPtr)), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretGetUsageID
 func (s *Secret) GetUsageID() (string, error) {
-	var err C.virError
-	result := C.virSecretGetUsageIDWrapper(s.ptr, &err)
+	result := C.virSecretGetUsageID(s.ptr)
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(result), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretGetUsageType
 func (s *Secret) GetUsageType() (SecretUsageType, error) {
-	var err C.virError
-	result := SecretUsageType(C.virSecretGetUsageTypeWrapper(s.ptr, &err))
+	result := SecretUsageType(C.virSecretGetUsageType(s.ptr))
 	if result == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return result, nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-secret.html#virSecretGetXMLDesc
 func (s *Secret) GetXMLDesc(flags uint32) (string, error) {
-	var err C.virError
-	result := C.virSecretGetXMLDescWrapper(s.ptr, C.uint(flags), &err)
+	result := C.virSecretGetXMLDesc(s.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -156,10 +149,9 @@ func (s *Secret) GetXMLDesc(flags uint32) (string, error) {
 func (s *Secret) GetValue(flags uint32) ([]byte, error) {
 	var cvalue_size C.size_t
 
-	var err C.virError
-	cvalue := C.virSecretGetValueWrapper(s.ptr, &cvalue_size, C.uint(flags), &err)
+	cvalue := C.virSecretGetValue(s.ptr, &cvalue_size, C.uint(flags))
 	if cvalue == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	defer C.free(unsafe.Pointer(cvalue))
 	ret := C.GoBytes(unsafe.Pointer(cvalue), C.int(cvalue_size))
@@ -174,11 +166,10 @@ func (s *Secret) SetValue(value []byte, flags uint32) error {
 		cvalue[i] = C.uchar(value[i])
 	}
 
-	var err C.virError
-	result := C.virSecretSetValueWrapper(s.ptr, &cvalue[0], C.size_t(len(value)), C.uint(flags), &err)
+	result := C.virSecretSetValue(s.ptr, &cvalue[0], C.size_t(len(value)), C.uint(flags))
 
 	if result == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 
 	return nil

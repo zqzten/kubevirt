@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,9 @@ package libvirt
 
 /*
 #cgo pkg-config: libvirt
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
 #include <stdlib.h>
-#include "domain_snapshot_wrapper.h"
 */
 import "C"
 
@@ -38,7 +39,7 @@ import (
 	"unsafe"
 )
 
-type DomainSnapshotCreateFlags uint
+type DomainSnapshotCreateFlags int
 
 const (
 	DOMAIN_SNAPSHOT_CREATE_REDEFINE    = DomainSnapshotCreateFlags(C.VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE)
@@ -50,10 +51,9 @@ const (
 	DOMAIN_SNAPSHOT_CREATE_QUIESCE     = DomainSnapshotCreateFlags(C.VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE)
 	DOMAIN_SNAPSHOT_CREATE_ATOMIC      = DomainSnapshotCreateFlags(C.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
 	DOMAIN_SNAPSHOT_CREATE_LIVE        = DomainSnapshotCreateFlags(C.VIR_DOMAIN_SNAPSHOT_CREATE_LIVE)
-	DOMAIN_SNAPSHOT_CREATE_VALIDATE    = DomainSnapshotCreateFlags(C.VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE)
 )
 
-type DomainSnapshotListFlags uint
+type DomainSnapshotListFlags int
 
 const (
 	DOMAIN_SNAPSHOT_LIST_ROOTS       = DomainSnapshotListFlags(C.VIR_DOMAIN_SNAPSHOT_LIST_ROOTS)
@@ -67,10 +67,9 @@ const (
 	DOMAIN_SNAPSHOT_LIST_DISK_ONLY   = DomainSnapshotListFlags(C.VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY)
 	DOMAIN_SNAPSHOT_LIST_INTERNAL    = DomainSnapshotListFlags(C.VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL)
 	DOMAIN_SNAPSHOT_LIST_EXTERNAL    = DomainSnapshotListFlags(C.VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL)
-	DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL = DomainSnapshotListFlags(C.VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL)
 )
 
-type DomainSnapshotRevertFlags uint
+type DomainSnapshotRevertFlags int
 
 const (
 	DOMAIN_SNAPSHOT_REVERT_RUNNING = DomainSnapshotRevertFlags(C.VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING)
@@ -78,18 +77,12 @@ const (
 	DOMAIN_SNAPSHOT_REVERT_FORCE   = DomainSnapshotRevertFlags(C.VIR_DOMAIN_SNAPSHOT_REVERT_FORCE)
 )
 
-type DomainSnapshotDeleteFlags uint
+type DomainSnapshotDeleteFlags int
 
 const (
 	DOMAIN_SNAPSHOT_DELETE_CHILDREN      = DomainSnapshotDeleteFlags(C.VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN)
 	DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY = DomainSnapshotDeleteFlags(C.VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY)
 	DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY = DomainSnapshotDeleteFlags(C.VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY)
-)
-
-type DomainSnapshotXMLFlags uint
-
-const (
-	DOMAIN_SNAPSHOT_XML_SECURE = DomainSnapshotXMLFlags(C.VIR_DOMAIN_SNAPSHOT_XML_SECURE)
 )
 
 type DomainSnapshot struct {
@@ -98,50 +91,45 @@ type DomainSnapshot struct {
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotFree
 func (s *DomainSnapshot) Free() error {
-	var err C.virError
-	ret := C.virDomainSnapshotFreeWrapper(s.ptr, &err)
+	ret := C.virDomainSnapshotFree(s.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotRef
 func (c *DomainSnapshot) Ref() error {
-	var err C.virError
-	ret := C.virDomainSnapshotRefWrapper(c.ptr, &err)
+	ret := C.virDomainSnapshotRef(c.ptr)
 	if ret == -1 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotDelete
 func (s *DomainSnapshot) Delete(flags DomainSnapshotDeleteFlags) error {
-	var err C.virError
-	result := C.virDomainSnapshotDeleteWrapper(s.ptr, C.uint(flags), &err)
+	result := C.virDomainSnapshotDelete(s.ptr, C.uint(flags))
 	if result != 0 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainRevertToSnapshot
 func (s *DomainSnapshot) RevertToSnapshot(flags DomainSnapshotRevertFlags) error {
-	var err C.virError
-	result := C.virDomainRevertToSnapshotWrapper(s.ptr, C.uint(flags), &err)
+	result := C.virDomainRevertToSnapshot(s.ptr, C.uint(flags))
 	if result != 0 {
-		return makeError(&err)
+		return GetLastError()
 	}
 	return nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotIsCurrent
 func (s *DomainSnapshot) IsCurrent(flags uint32) (bool, error) {
-	var err C.virError
-	result := C.virDomainSnapshotIsCurrentWrapper(s.ptr, C.uint(flags), &err)
+	result := C.virDomainSnapshotIsCurrent(s.ptr, C.uint(flags))
 	if result == -1 {
-		return false, makeError(&err)
+		return false, GetLastError()
 	}
 	if result == 1 {
 		return true, nil
@@ -151,10 +139,9 @@ func (s *DomainSnapshot) IsCurrent(flags uint32) (bool, error) {
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotHasMetadata
 func (s *DomainSnapshot) HasMetadata(flags uint32) (bool, error) {
-	var err C.virError
-	result := C.virDomainSnapshotHasMetadataWrapper(s.ptr, C.uint(flags), &err)
+	result := C.virDomainSnapshotHasMetadata(s.ptr, C.uint(flags))
 	if result == -1 {
-		return false, makeError(&err)
+		return false, GetLastError()
 	}
 	if result == 1 {
 		return true, nil
@@ -163,11 +150,10 @@ func (s *DomainSnapshot) HasMetadata(flags uint32) (bool, error) {
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotGetXMLDesc
-func (s *DomainSnapshot) GetXMLDesc(flags DomainSnapshotXMLFlags) (string, error) {
-	var err C.virError
-	result := C.virDomainSnapshotGetXMLDescWrapper(s.ptr, C.uint(flags), &err)
+func (s *DomainSnapshot) GetXMLDesc(flags DomainXMLFlags) (string, error) {
+	result := C.virDomainSnapshotGetXMLDesc(s.ptr, C.uint(flags))
 	if result == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	xml := C.GoString(result)
 	C.free(unsafe.Pointer(result))
@@ -176,30 +162,27 @@ func (s *DomainSnapshot) GetXMLDesc(flags DomainSnapshotXMLFlags) (string, error
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotGetName
 func (s *DomainSnapshot) GetName() (string, error) {
-	var err C.virError
-	name := C.virDomainSnapshotGetNameWrapper(s.ptr, &err)
+	name := C.virDomainSnapshotGetName(s.ptr)
 	if name == nil {
-		return "", makeError(&err)
+		return "", GetLastError()
 	}
 	return C.GoString(name), nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotGetParent
 func (s *DomainSnapshot) GetParent(flags uint32) (*DomainSnapshot, error) {
-	var err C.virError
-	ptr := C.virDomainSnapshotGetParentWrapper(s.ptr, C.uint(flags), &err)
+	ptr := C.virDomainSnapshotGetParent(s.ptr, C.uint(flags))
 	if ptr == nil {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	return &DomainSnapshot{ptr: ptr}, nil
 }
 
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotNumChildren
 func (s *DomainSnapshot) NumChildren(flags DomainSnapshotListFlags) (int, error) {
-	var err C.virError
-	result := int(C.virDomainSnapshotNumChildrenWrapper(s.ptr, C.uint(flags), &err))
+	result := int(C.virDomainSnapshotNumChildren(s.ptr, C.uint(flags)))
 	if result == -1 {
-		return 0, makeError(&err)
+		return 0, GetLastError()
 	}
 	return result, nil
 }
@@ -209,13 +192,12 @@ func (s *DomainSnapshot) ListChildrenNames(flags DomainSnapshotListFlags) ([]str
 	const maxNames = 1024
 	var names [maxNames](*C.char)
 	namesPtr := unsafe.Pointer(&names)
-	var err C.virError
-	numNames := C.virDomainSnapshotListChildrenNamesWrapper(
+	numNames := C.virDomainSnapshotListChildrenNames(
 		s.ptr,
 		(**C.char)(namesPtr),
-		maxNames, C.uint(flags), &err)
+		maxNames, C.uint(flags))
 	if numNames == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	goNames := make([]string, numNames)
 	for k := 0; k < int(numNames); k++ {
@@ -228,10 +210,9 @@ func (s *DomainSnapshot) ListChildrenNames(flags DomainSnapshotListFlags) ([]str
 // See also https://libvirt.org/html/libvirt-libvirt-domain-snapshot.html#virDomainSnapshotListAllChildren
 func (d *DomainSnapshot) ListAllChildren(flags DomainSnapshotListFlags) ([]DomainSnapshot, error) {
 	var cList *C.virDomainSnapshotPtr
-	var err C.virError
-	numVols := C.virDomainSnapshotListAllChildrenWrapper(d.ptr, (**C.virDomainSnapshotPtr)(&cList), C.uint(flags), &err)
+	numVols := C.virDomainSnapshotListAllChildren(d.ptr, (**C.virDomainSnapshotPtr)(&cList), C.uint(flags))
 	if numVols == -1 {
-		return nil, makeError(&err)
+		return nil, GetLastError()
 	}
 	hdr := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(cList)),

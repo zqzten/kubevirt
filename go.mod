@@ -200,6 +200,8 @@ replace (
 	kubevirt.io/containerized-data-importer => kubevirt.io/containerized-data-importer v1.42.0
 	kubevirt.io/containerized-data-importer-api => kubevirt.io/containerized-data-importer-api v1.42.0
 
+	libvirt.org/go/libvirt => libvirt.org/libvirt-go v4.5.0+incompatible
+
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.2
 )
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,5 +32,18 @@
 #ifndef VIR_STREAM_RECV_STOP_AT_HOLE
 #define VIR_STREAM_RECV_STOP_AT_HOLE (1 << 0)
 #endif
+
+int virStreamRecvFlagsCompat(virStreamPtr st,
+			     char *data,
+			     size_t nbytes,
+			     unsigned int flags);
+
+int virStreamSendHoleCompat(virStreamPtr st,
+			    long long length,
+			    unsigned int flags);
+
+int virStreamRecvHoleCompat(virStreamPtr,
+			    long long *length,
+			    unsigned int flags);
 
 #endif /* LIBVIRT_GO_STREAM_COMPAT_H__ */

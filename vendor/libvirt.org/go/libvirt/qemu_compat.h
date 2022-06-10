@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,9 @@ typedef void (*virConnectDomainQemuMonitorEventCallback)(virConnectPtr conn,
                                                          const char *details,
                                                          void *opaque);
 #endif
+
+int virConnectDomainQemuMonitorEventDeregisterCompat(virConnectPtr conn,
+						     int callbackID);
 
 #ifndef VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX
 #define VIR_CONNECT_DOMAIN_QEMU_MONITOR_EVENT_REGISTER_REGEX (1 << 0)

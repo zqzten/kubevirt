@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,10 +56,6 @@ const (
 )
 
 type ErrorNumber int
-
-func (err ErrorNumber) Error() string {
-	return fmt.Sprintf("virErrCode(%d)", err)
-}
 
 const (
 	ERR_OK = ErrorNumber(C.VIR_ERR_OK)
@@ -366,33 +362,6 @@ const (
 
 	// Requested nwfilter binding does not exist
 	ERR_NO_NWFILTER_BINDING = ErrorNumber(C.VIR_ERR_NO_NWFILTER_BINDING)
-
-	// invalid domain checkpoint
-	ERR_INVALID_DOMAIN_CHECKPOINT = ErrorNumber(C.VIR_ERR_INVALID_DOMAIN_CHECKPOINT)
-
-	// domain checkpoint not found
-	ERR_NO_DOMAIN_CHECKPOINT = ErrorNumber(C.VIR_ERR_NO_DOMAIN_CHECKPOINT)
-
-	// domain backup job id not found *
-	ERR_NO_DOMAIN_BACKUP = ErrorNumber(C.VIR_ERR_NO_DOMAIN_BACKUP)
-
-	// invalid network port object
-	ERR_INVALID_NETWORK_PORT = ErrorNumber(C.VIR_ERR_INVALID_NETWORK_PORT)
-
-	// network port already exists
-	ERR_NETWORK_PORT_EXIST = ErrorNumber(C.VIR_ERR_NETWORK_PORT_EXIST)
-
-	// network port not found
-	ERR_NO_NETWORK_PORT = ErrorNumber(C.VIR_ERR_NO_NETWORK_PORT)
-
-	// no domain's hostname found
-	ERR_NO_HOSTNAME = ErrorNumber(C.VIR_ERR_NO_HOSTNAME)
-
-	// checkpoint is inconsistent
-	ERR_CHECKPOINT_INCONSISTENT = ErrorNumber(C.VIR_ERR_CHECKPOINT_INCONSISTENT)
-
-	// more than one matching domain found
-	ERR_MULTIPLE_DOMAINS = ErrorNumber(C.VIR_ERR_MULTIPLE_DOMAINS)
 )
 
 type ErrorDomain int
@@ -600,21 +569,6 @@ const (
 
 	// Error from resoruce control
 	FROM_RESCTRL = ErrorDomain(C.VIR_FROM_RESCTRL)
-
-	// Error from firewalld
-	FROM_FIREWALLD = ErrorDomain(C.VIR_FROM_FIREWALLD)
-
-	// Error from domain checkpoint
-	FROM_DOMAIN_CHECKPOINT = ErrorDomain(C.VIR_FROM_DOMAIN_CHECKPOINT)
-
-	// Error from TPM
-	FROM_TPM = ErrorDomain(C.VIR_FROM_TPM)
-
-	// Error from BPF
-	FROM_BPF = ErrorDomain(C.VIR_FROM_BPF)
-
-	// Error from Cloud Hypervisor
-	FROM_CH = ErrorDomain(C.VIR_FROM_CH)
 )
 
 type Error struct {
@@ -629,27 +583,27 @@ func (err Error) Error() string {
 		err.Code, err.Domain, err.Message)
 }
 
-func (err Error) Is(target error) bool {
-	n, ok := target.(ErrorNumber)
-	if !ok {
-		return false
+func GetLastError() Error {
+	err := C.virGetLastError()
+	if err == nil {
+		return Error{
+			Code:    ERR_OK,
+			Domain:  FROM_NONE,
+			Message: "Missing error",
+			Level:   ERR_NONE,
+		}
 	}
-
-	return err.Code == n
-}
-
-func makeError(err *C.virError) Error {
-	ret := Error{
+	virErr := Error{
 		Code:    ErrorNumber(err.code),
 		Domain:  ErrorDomain(err.domain),
 		Message: C.GoString(err.message),
 		Level:   ErrorLevel(err.level),
 	}
 	C.virResetError(err)
-	return ret
+	return virErr
 }
 
-func makeNotImplementedError(apiname string) Error {
+func GetNotImplementedError(apiname string) Error {
 	return Error{
 		Code:    ERR_NO_SUPPORT,
 		Domain:  FROM_NONE,

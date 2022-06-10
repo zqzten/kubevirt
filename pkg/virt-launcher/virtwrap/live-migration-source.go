@@ -907,16 +907,18 @@ func generateMigrationParams(dom cli.VirDomain, vmi *v1.VirtualMachineInstance, 
 		PersistXMLSet: true,
 	}
 
-	copyDisks := getDiskTargetsForMigration(dom, vmi)
-	if len(copyDisks) != 0 {
-		params.MigrateDisks = copyDisks
-		params.MigrateDisksSet = true
-		// add a socket for live block migration
-		key := migrationproxy.ConstructProxyKey(string(vmi.UID), migrationproxy.LibvirtBlockMigrationPort)
-		disksURI := fmt.Sprintf("unix://%s", migrationproxy.SourceUnixFile(virtShareDir, key))
-		params.DisksURI = disksURI
-		params.DisksURISet = true
-	}
+	// VIR_MIGRATE_PARAM_DISKS_URI is supported since 6.8.0
+	// https://github.com/libvirt/libvirt/blob/2177de7b6e35499584731e6f4869903aa553022b/include/libvirt/libvirt-domain.h#L1245
+	// copyDisks := getDiskTargetsForMigration(dom, vmi)
+	// if len(copyDisks) != 0 {
+	// 	params.MigrateDisks = copyDisks
+	// 	params.MigrateDisksSet = true
+	// 	// add a socket for live block migration
+	// 	key := migrationproxy.ConstructProxyKey(string(vmi.UID), migrationproxy.LibvirtBlockMigrationPort)
+	// 	disksURI := fmt.Sprintf("unix://%s", migrationproxy.SourceUnixFile(virtShareDir, key))
+	// 	params.DisksURI = disksURI
+	// 	params.DisksURISet = true
+	// }
 
 	log.Log.Object(vmi).Infof("generated migration parameters: %+v", params)
 	return params, nil

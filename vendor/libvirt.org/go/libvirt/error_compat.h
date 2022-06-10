@@ -1,5 +1,5 @@
 /*
- * This file is part of the libvirt-go-module project
+ * This file is part of the libvirt-go project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -162,81 +162,5 @@
 #ifndef VIR_ERR_NO_NWFILTER_BINDING
 #define VIR_ERR_NO_NWFILTER_BINDING 101
 #endif
-
-/* 5.1.0 */
-
-#ifndef VIR_FROM_FIREWALLD
-#define VIR_FROM_FIREWALLD 68
-#endif
-
-/* 5.2.0 */
-
-#ifndef VIR_ERR_INVALID_DOMAIN_CHECKPOINT
-#define VIR_ERR_INVALID_DOMAIN_CHECKPOINT 102
-#endif
-
-#ifndef VIR_ERR_NO_DOMAIN_CHECKPOINT
-#define VIR_ERR_NO_DOMAIN_CHECKPOINT 103
-#endif
-
-#ifndef VIR_ERR_NO_DOMAIN_BACKUP
-#define VIR_ERR_NO_DOMAIN_BACKUP 104
-#endif
-
-#ifndef VIR_FROM_DOMAIN_CHECKPOINT
-#define VIR_FROM_DOMAIN_CHECKPOINT 69
-#endif
-
-/* 5.5.0 */
-
-#ifndef VIR_ERR_INVALID_NETWORK_PORT
-#define VIR_ERR_INVALID_NETWORK_PORT 105
-#endif
-
-#ifndef VIR_ERR_NETWORK_PORT_EXIST
-#define VIR_ERR_NETWORK_PORT_EXIST 106
-#endif
-
-#ifndef VIR_ERR_NO_NETWORK_PORT
-#define VIR_ERR_NO_NETWORK_PORT 107
-#endif
-
-/* 5.6.0 */
-
-#ifndef VIR_FROM_TPM
-#define VIR_FROM_TPM 70
-#endif
-
-/* 5.10.0 */
-
-#ifndef VIR_FROM_BPF
-#define VIR_FROM_BPF 71
-#endif
-
-/* 6.1.0 */
-#ifndef VIR_ERR_NO_HOSTNAME
-#define VIR_ERR_NO_HOSTNAME 108
-#endif
-
-
-/* 6.10.0 */
-
-#ifndef VIR_ERR_CHECKPOINT_INCONSISTENT
-#define VIR_ERR_CHECKPOINT_INCONSISTENT 109
-#endif
-
-
-/* 7.0.0 */
-
-#ifndef VIR_ERR_MULTIPLE_DOMAINS
-#define VIR_ERR_MULTIPLE_DOMAINS 110
-#endif
-
-/* 7.5.0 */
-
-#ifndef VIR_FROM_CH
-#define VIR_FROM_CH 72
-#endif
-
 
 #endif /* LIBVIRT_GO_ERROR_COMPAT_H__ */
