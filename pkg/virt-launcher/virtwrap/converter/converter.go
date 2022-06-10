@@ -1794,15 +1794,17 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 				},
 			}
 		}
-		domain.Spec.Devices.Graphics = []api.Graphics{
-			{
-				Listen: &api.GraphicsListen{
-					Type:   "socket",
-					Socket: fmt.Sprintf("/var/run/kubevirt-private/%s/virt-vnc", vmi.ObjectMeta.UID),
-				},
-				Type: "vnc",
-			},
-		}
+		initializeQEMUCmdAndQEMUArg(domain)
+		domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg, api.Arg{
+			Value: "-vnc",
+		}, api.Arg{
+			Value: "[::]:0,websocket=5901,ipv6=on",
+		}, api.Arg{
+			Value: "-vnc",
+		}, api.Arg{
+			Value: "0.0.0.0:0,websocket=5901,ipv4=on",
+		})
+		log.Log.Infof("setup VNC server")
 	}
 
 	domainInterfaces, err := createDomainInterfaces(vmi, domain, c, virtioNetProhibited)
