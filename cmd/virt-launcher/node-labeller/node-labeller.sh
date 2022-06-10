@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 KVM_MINOR=$(grep -w 'kvm' /proc/misc | cut -f 1 -d' ')
 VIRTTYPE=qemu
@@ -19,7 +20,9 @@ if [ -e /dev/sev ]; then
   chmod o+rw /dev/sev
 fi
 
-libvirtd -d
+libvirtd -d &
+
+sleep 10
 
 virsh domcapabilities --machine q35 --arch x86_64 --virttype $VIRTTYPE > /var/lib/kubevirt-node-labeller/virsh_domcapabilities.xml
 
