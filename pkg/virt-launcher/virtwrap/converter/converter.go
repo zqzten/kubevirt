@@ -1720,10 +1720,10 @@ func Convert_v1_VirtualMachineInstance_To_api_Domain(vmi *v1.VirtualMachineInsta
 
 	if vmi.Spec.Domain.Devices.AutoattachSerialConsole == nil || *vmi.Spec.Domain.Devices.AutoattachSerialConsole == true {
 		// Add mandatory console device
+		// Libvirt < 5.2.0, virtio-serial controller does not support attribute 'model'
 		domain.Spec.Devices.Controllers = append(domain.Spec.Devices.Controllers, api.Controller{
 			Type:   "virtio-serial",
 			Index:  "0",
-			Model:  translateModel(c, "virtio"),
 			Driver: controllerDriver,
 		})
 
