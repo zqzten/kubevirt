@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"kubevirt.io/client-go/log"
 
@@ -318,4 +320,123 @@ func extractIPs(ipAddresses []IP) (string, []string) {
 		interfaceIP = interfaceIPs[0]
 	}
 	return interfaceIP, interfaceIPs
+}
+
+/*将df的输出转化成json字符串
+* df 输出如下:
+
+文件系统           1K-块     已用
+
+devtmpfs       197269476        0
+
+/dev/vda1      206292644 25647324
+
+/dev/vdb2      101655544  2174844
+
+/dev/vdb1      102687652 38276812
+
+tmpfs          197281688       12
+
+*/
+func parseDfOutput(output string) (disks []api.GuestDiskInfo) {
+	disks = make([]api.GuestDiskInfo, 0, 10)
+	output = strings.Trim(output, " ")
+	lines := strings.Split(output, "\n")
+	r := regexp.MustCompile(`[\s]*/dev/([\S]+)[\s]+([\d]+)[\s]+([\d]+)`)
+	for i := 1; i < len(lines); i++ {
+		matches := r.FindStringSubmatch(lines[i])
+		if len(matches) < 4 {
+			continue
+		}
+		disk := &api.GuestDiskInfo{
+			Name: matches[1],
+		}
+		total, err := strconv.Atoi(matches[2])
+		if err == nil {
+			disk.TotalKB = int64(total)
+		}
+		used, err := strconv.Atoi(matches[2])
+		if err == nil {
+			disk.UsedKB = int64(used)
+		}
+		disks = append(disks, *disk)
+	}
+	return
+}
+
+/*
+[root@virt-v6 ~]# cat /proc/meminfo
+MemTotal:       394563376 kB
+MemFree:        349210744 kB
+MemAvailable:   378033772 kB
+Buffers:         1455632 kB
+Cached:         30859344 kB
+SwapCached:            0 kB
+Active:         12384744 kB
+Inactive:       29820532 kB
+Active(anon):    2239948 kB
+Inactive(anon): 10221196 kB
+Active(file):   10144796 kB
+Inactive(file): 19599336 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:              2428 kB
+Writeback:             0 kB
+AnonPages:       8919852 kB
+Mapped:          4080656 kB
+Shmem:           2815176 kB
+Slab:            2150944 kB
+SReclaimable:    1698876 kB
+SUnreclaim:       452068 kB
+KernelStack:       88000 kB
+PageTables:        63740 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    197281688 kB
+Committed_AS:   35516508 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+Percpu:           192768 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:   5844992 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:     1147704 kB
+DirectMap2M:    36245504 kB
+DirectMap1G:    365953024 kB
+*/
+//将cat /proc/meminfo命令的output进行解析
+func parseMMOutput(output string) api.GuestMMInfo {
+	output = strings.Trim(output, " ")
+	mm := &api.GuestMMInfo{}
+	lines := strings.Split(output, "\n")
+	kv := map[string]int{}
+	r := regexp.MustCompile(`[\s]*([\S]+):[\s]+([\d]+).*`)
+	for i := 0; i < len(lines); i++ {
+		matches := r.FindStringSubmatch(lines[i])
+		if len(matches) < 3 {
+			continue
+		}
+		num, err := strconv.Atoi(matches[2])
+		if err == nil {
+			kv[matches[1]] = num
+		}
+	}
+	mm.TotalKB = int64(kv["MemTotal"])
+	mm.AvailableKB = int64(kv["MemAvailable"])
+	return *mm
 }

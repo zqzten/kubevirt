@@ -308,6 +308,36 @@ func (metrics *vmiMetrics) updateBlock(blkStats []stats.DomainStatsBlock) {
 				blkLabelValues,
 			)
 		}
+		if block.CapacitySet {
+			metrics.pushCustomMetric(
+				"kubevirt_vmi_storage_total",
+				"guest os  total block capacity(byte)",
+				prometheus.GaugeValue,
+				float64(block.Capacity),
+				blkLabels,
+				[]string{block.Name},
+			)
+		}
+		if block.AllocationSet {
+			metrics.pushCustomMetric(
+				"kubevirt_vmi_storage_usage",
+				"guest os  used block (byte)",
+				prometheus.GaugeValue,
+				float64(block.Allocation),
+				blkLabels,
+				[]string{block.Name},
+			)
+		}
+		if block.PhysicalSet {
+			metrics.pushCustomMetric(
+				"kubevirt_vmi_storage_physical",
+				"guest os  Physical block (byte)",
+				prometheus.GaugeValue,
+				float64(block.Physical),
+				blkLabels,
+				[]string{block.Name},
+			)
+		}
 	}
 }
 
