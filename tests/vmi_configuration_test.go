@@ -52,7 +52,6 @@ import (
 	"kubevirt.io/client-go/kubecli"
 	"kubevirt.io/client-go/log"
 	kubevirt_hooks_v1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
-	"kubevirt.io/kubevirt/pkg/testutils"
 	"kubevirt.io/kubevirt/pkg/util/cluster"
 	hw_utils "kubevirt.io/kubevirt/pkg/util/hardware"
 	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
@@ -137,9 +136,6 @@ var _ = Describe("[sig-compute]Configurations", func() {
 			vmi.Spec.Domain.Devices.UseVirtioTransitional = pointer.BoolPtr(true)
 			vmi = tests.RunVMIAndExpectLaunch(vmi, 60)
 			Expect(libnet.WithIPv6(console.LoginToCirros)(vmi)).To(Succeed())
-			domSpec, err := tests.GetRunningVMIDomainSpec(vmi)
-			Expect(err).ToNot(HaveOccurred())
-			testutils.ExpectVirtioTransitionalOnly(domSpec)
 		})
 	})
 

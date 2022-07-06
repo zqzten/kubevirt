@@ -122,8 +122,8 @@ func Convert_libvirt_DomainStatsVcpu_To_stats_DomainStatsVcpu(in []libvirt.Domai
 			Time:     inItem.Time,
 			// Libvirt export vcpu wait stats Since 6.0.0
 			// https://github.com/libvirt/libvirt-go/blob/fa4482e6bba3ecfdac0cb421ade77da135492360/connect.go#L2578
-			// WaitSet:  inItem.WaitSet,
-			// Wait:     inItem.Wait,
+			WaitSet: false,
+			Wait:    0,
 		})
 	}
 	return ret

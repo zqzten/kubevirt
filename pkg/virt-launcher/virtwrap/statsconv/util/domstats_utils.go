@@ -40,8 +40,8 @@ var Testdata = `[
             "StateSet" : true,
             "TimeSet" : true,
             "Time" : 17360000000,
-            "WaitSet": true,
-            "Wait": 1500
+            "WaitSet": false,
+            "Wait": 0
          }
       ],
       "Perf" : null,
@@ -238,8 +238,8 @@ var Testdataexpected = `{
        "StateSet": true, 
        "Time": 17360000000, 
        "TimeSet": true,
-       "WaitSet": true,
-       "Wait": 1500
+       "WaitSet": false,
+       "Wait": 0
      }
    ],
    "CPUMapSet": false,

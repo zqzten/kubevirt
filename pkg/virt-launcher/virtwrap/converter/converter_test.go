@@ -44,7 +44,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 
 	"kubevirt.io/kubevirt/pkg/ephemeral-disk/fake"
-	"kubevirt.io/kubevirt/pkg/testutils"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 
 	v1 "kubevirt.io/api/core/v1"
@@ -146,7 +145,7 @@ var _ = Describe("Converter", func() {
 					},
 				},
 			}
-			var convertedDisk = `<Disk device="disk" type="" model="virtio-non-transitional">
+			var convertedDisk = `<Disk device="disk" type="" model="virtio">
   <source></source>
   <target bus="virtio" dev="vda"></target>
   <driver error_policy="stop" name="qemu" type="" discard="unmap"></driver>
@@ -192,7 +191,7 @@ var _ = Describe("Converter", func() {
 					},
 				},
 			}
-			var convertedDisk = `<Disk device="disk" type="" model="virtio-non-transitional">
+			var convertedDisk = `<Disk device="disk" type="" model="virtio">
   <source></source>
   <target bus="virtio" dev="vda"></target>
   <driver error_policy="stop" name="qemu" type="" discard="unmap"></driver>
@@ -586,7 +585,7 @@ var _ = Describe("Converter", func() {
   <devices>
     <interface type="ethernet">
       <source></source>
-      <model type="virtio-non-transitional"></model>
+      <model type="virtio"></model>
       <alias name="ua-default"></alias>
       <rom enabled="no"></rom>
     </interface>
@@ -594,21 +593,18 @@ var _ = Describe("Converter", func() {
       <target name="org.qemu.guest_agent.0" type="virtio"></target>
     </channel>
     <controller type="usb" index="0" model="none"></controller>
-    <controller type="virtio-serial" index="0" model="virtio-non-transitional"></controller>
+    <controller type="virtio-serial" index="0"></controller>
     <video>
       <model type="vga" heads="1" vram="16384"></model>
     </video>
-    <graphics type="vnc">
-      <listen type="socket" socket="/var/run/kubevirt-private/f4686d2c-6e8d-4335-b8fd-81bee22f4814/virt-vnc"></listen>
-    </graphics>
     %s
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/kubevirt-private/vmi-disks/myvolume/disk.img"></source>
       <target bus="virtio" dev="vda"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="2" discard="unmap"></driver>
       <alias name="ua-myvolume"></alias>
     </disk>
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/libvirt/cloud-init-dir/mynamespace/testvmi/noCloud.iso"></source>
       <target bus="virtio" dev="vdb"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="3" discard="unmap"></driver>
@@ -713,7 +709,7 @@ var _ = Describe("Converter", func() {
     <watchdog model="i6300esb" action="poweroff">
       <alias name="ua-mywatchdog"></alias>
     </watchdog>
-    <rng model="virtio-non-transitional">
+    <rng model="virtio">
       <backend model="random">/dev/urandom</backend>
     </rng>
   </devices>
@@ -724,6 +720,12 @@ var _ = Describe("Converter", func() {
     <timer name="hpet" tickpolicy="delay" present="no"></timer>
     <timer name="hypervclock" present="yes"></timer>
   </clock>
+  <qemu:commandline>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="[::]:0,websocket=5901,ipv6=on"></qemu:arg>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="0.0.0.0:0,websocket=5901,ipv4=on"></qemu:arg>
+  </qemu:commandline>
   <metadata>
     <kubevirt xmlns="http://kubevirt.io">
       <uid>f4686d2c-6e8d-4335-b8fd-81bee22f4814</uid>
@@ -766,15 +768,15 @@ var _ = Describe("Converter", func() {
   <iothreads>3</iothreads>
 </domain>`, domainType, "%s")
 		var convertedDomainWith5Period = fmt.Sprintf(convertedDomain,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="5"></stats>
     </memballoon>`)
 		var convertedDomainWith0Period = fmt.Sprintf(convertedDomain,
-			`<memballoon model="virtio-non-transitional"></memballoon>`)
+			`<memballoon model="virtio"></memballoon>`)
 		var convertedDomainWithFalseAutoattach = fmt.Sprintf(convertedDomain,
 			`<memballoon model="none"></memballoon>`)
 		convertedDomain = fmt.Sprintf(convertedDomain,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="10"></stats>
     </memballoon>`)
 
@@ -801,7 +803,7 @@ var _ = Describe("Converter", func() {
   <devices>
     <interface type="ethernet">
       <source></source>
-      <model type="virtio-non-transitional"></model>
+      <model type="virtio"></model>
       <alias name="ua-default"></alias>
       <rom enabled="no"></rom>
     </interface>
@@ -809,21 +811,18 @@ var _ = Describe("Converter", func() {
       <target name="org.qemu.guest_agent.0" type="virtio"></target>
     </channel>
     <controller type="usb" index="0" model="qemu-xhci"></controller>
-    <controller type="virtio-serial" index="0" model="virtio-non-transitional"></controller>
+    <controller type="virtio-serial" index="0"></controller>
     <video>
       <model type="vga" heads="1" vram="16384"></model>
     </video>
-    <graphics type="vnc">
-      <listen type="socket" socket="/var/run/kubevirt-private/f4686d2c-6e8d-4335-b8fd-81bee22f4814/virt-vnc"></listen>
-    </graphics>
     %s
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/kubevirt-private/vmi-disks/myvolume/disk.img"></source>
       <target bus="virtio" dev="vda"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="2" discard="unmap"></driver>
       <alias name="ua-myvolume"></alias>
     </disk>
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/libvirt/cloud-init-dir/mynamespace/testvmi/noCloud.iso"></source>
       <target bus="virtio" dev="vdb"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="3" discard="unmap"></driver>
@@ -928,7 +927,7 @@ var _ = Describe("Converter", func() {
     <watchdog model="i6300esb" action="poweroff">
       <alias name="ua-mywatchdog"></alias>
     </watchdog>
-    <rng model="virtio-non-transitional">
+    <rng model="virtio">
       <backend model="random">/dev/urandom</backend>
     </rng>
   </devices>
@@ -939,6 +938,12 @@ var _ = Describe("Converter", func() {
     <timer name="hpet" tickpolicy="delay" present="no"></timer>
     <timer name="hypervclock" present="yes"></timer>
   </clock>
+  <qemu:commandline>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="[::]:0,websocket=5901,ipv6=on"></qemu:arg>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="0.0.0.0:0,websocket=5901,ipv4=on"></qemu:arg>
+  </qemu:commandline>
   <metadata>
     <kubevirt xmlns="http://kubevirt.io">
       <uid>f4686d2c-6e8d-4335-b8fd-81bee22f4814</uid>
@@ -982,16 +987,16 @@ var _ = Describe("Converter", func() {
 </domain>`, domainType, "%s")
 
 		var convertedDomainppc64leWith5Period = fmt.Sprintf(convertedDomainppc64le,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="5"></stats>
     </memballoon>`)
 		var convertedDomainppc64leWith0Period = fmt.Sprintf(convertedDomainppc64le,
-			`<memballoon model="virtio-non-transitional"></memballoon>`)
+			`<memballoon model="virtio"></memballoon>`)
 
 		var convertedDomainppc64leWithFalseAutoattach = fmt.Sprintf(convertedDomainppc64le,
 			`<memballoon model="none"></memballoon>`)
 		convertedDomainppc64le = fmt.Sprintf(convertedDomainppc64le,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="10"></stats>
     </memballoon>`)
 
@@ -1019,7 +1024,7 @@ var _ = Describe("Converter", func() {
   <devices>
     <interface type="ethernet">
       <source></source>
-      <model type="virtio-non-transitional"></model>
+      <model type="virtio"></model>
       <alias name="ua-default"></alias>
       <rom enabled="no"></rom>
     </interface>
@@ -1027,21 +1032,18 @@ var _ = Describe("Converter", func() {
       <target name="org.qemu.guest_agent.0" type="virtio"></target>
     </channel>
     <controller type="usb" index="0" model="qemu-xhci"></controller>
-    <controller type="virtio-serial" index="0" model="virtio-non-transitional"></controller>
+    <controller type="virtio-serial" index="0"></controller>
     <video>
       <model type="virtio" heads="1"></model>
     </video>
-    <graphics type="vnc">
-      <listen type="socket" socket="/var/run/kubevirt-private/f4686d2c-6e8d-4335-b8fd-81bee22f4814/virt-vnc"></listen>
-    </graphics>
     %s
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/kubevirt-private/vmi-disks/myvolume/disk.img"></source>
       <target bus="virtio" dev="vda"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="2" discard="unmap"></driver>
       <alias name="ua-myvolume"></alias>
     </disk>
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/libvirt/cloud-init-dir/mynamespace/testvmi/noCloud.iso"></source>
       <target bus="virtio" dev="vdb"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="3" discard="unmap"></driver>
@@ -1147,7 +1149,7 @@ var _ = Describe("Converter", func() {
     <watchdog model="i6300esb" action="poweroff">
       <alias name="ua-mywatchdog"></alias>
     </watchdog>
-    <rng model="virtio-non-transitional">
+    <rng model="virtio">
       <backend model="random">/dev/urandom</backend>
     </rng>
   </devices>
@@ -1158,6 +1160,12 @@ var _ = Describe("Converter", func() {
     <timer name="hpet" tickpolicy="delay" present="no"></timer>
     <timer name="hypervclock" present="yes"></timer>
   </clock>
+  <qemu:commandline>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="[::]:0,websocket=5901,ipv6=on"></qemu:arg>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="0.0.0.0:0,websocket=5901,ipv4=on"></qemu:arg>
+  </qemu:commandline>
   <metadata>
     <kubevirt xmlns="http://kubevirt.io">
       <uid>f4686d2c-6e8d-4335-b8fd-81bee22f4814</uid>
@@ -1200,15 +1208,15 @@ var _ = Describe("Converter", func() {
   <iothreads>3</iothreads>
 </domain>`, domainType, "%s")
 		var convertedDomainarm64With5Period = fmt.Sprintf(convertedDomainarm64,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="5"></stats>
     </memballoon>`)
 		var convertedDomainarm64With0Period = fmt.Sprintf(convertedDomainarm64,
-			`<memballoon model="virtio-non-transitional"></memballoon>`)
+			`<memballoon model="virtio"></memballoon>`)
 		var convertedDomainarm64WithFalseAutoattach = fmt.Sprintf(convertedDomainarm64,
 			`<memballoon model="none"></memballoon>`)
 		convertedDomainarm64 = fmt.Sprintf(convertedDomainarm64,
-			`<memballoon model="virtio-non-transitional">
+			`<memballoon model="virtio">
       <stats period="10"></stats>
     </memballoon>`)
 
@@ -1237,7 +1245,7 @@ var _ = Describe("Converter", func() {
     <interface type="ethernet">
       <address type="pci" domain="0x0000" bus="0x00" slot="0x02" function="0x0"></address>
       <source></source>
-      <model type="virtio-non-transitional"></model>
+      <model type="virtio"></model>
       <alias name="ua-default"></alias>
       <rom enabled="no"></rom>
     </interface>
@@ -1247,27 +1255,24 @@ var _ = Describe("Converter", func() {
     <controller type="usb" index="0" model="none">
       <address type="pci" domain="0x0000" bus="0x00" slot="0x03" function="0x0"></address>
     </controller>
-    <controller type="virtio-serial" index="0" model="virtio-non-transitional">
+    <controller type="virtio-serial" index="0">
       <address type="pci" domain="0x0000" bus="0x00" slot="0x04" function="0x0"></address>
     </controller>
     <video>
       <model type="vga" heads="1" vram="16384"></model>
     </video>
-    <graphics type="vnc">
-      <listen type="socket" socket="/var/run/kubevirt-private/f4686d2c-6e8d-4335-b8fd-81bee22f4814/virt-vnc"></listen>
-    </graphics>
-    <memballoon model="virtio-non-transitional">
+    <memballoon model="virtio">
       <stats period="10"></stats>
       <address type="pci" domain="0x0000" bus="0x00" slot="0x0a" function="0x0"></address>
     </memballoon>
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/kubevirt-private/vmi-disks/myvolume/disk.img"></source>
       <target bus="virtio" dev="vda"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="2" discard="unmap"></driver>
       <alias name="ua-myvolume"></alias>
       <address type="pci" domain="0x0000" bus="0x00" slot="0x05" function="0x0"></address>
     </disk>
-    <disk device="disk" type="file" model="virtio-non-transitional">
+    <disk device="disk" type="file" model="virtio">
       <source file="/var/run/libvirt/cloud-init-dir/mynamespace/testvmi/noCloud.iso"></source>
       <target bus="virtio" dev="vdb"></target>
       <driver error_policy="stop" name="qemu" type="raw" iothread="3" discard="unmap"></driver>
@@ -1375,7 +1380,7 @@ var _ = Describe("Converter", func() {
       <alias name="ua-mywatchdog"></alias>
       <address type="pci" domain="0x0000" bus="0x00" slot="0x08" function="0x0"></address>
     </watchdog>
-    <rng model="virtio-non-transitional">
+    <rng model="virtio">
       <backend model="random">/dev/urandom</backend>
       <address type="pci" domain="0x0000" bus="0x00" slot="0x09" function="0x0"></address>
     </rng>
@@ -1387,6 +1392,12 @@ var _ = Describe("Converter", func() {
     <timer name="hpet" tickpolicy="delay" present="no"></timer>
     <timer name="hypervclock" present="yes"></timer>
   </clock>
+  <qemu:commandline>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="[::]:0,websocket=5901,ipv6=on"></qemu:arg>
+    <qemu:arg value="-vnc"></qemu:arg>
+    <qemu:arg value="0.0.0.0:0,websocket=5901,ipv4=on"></qemu:arg>
+  </qemu:commandline>
   <metadata>
     <kubevirt xmlns="http://kubevirt.io">
       <uid>f4686d2c-6e8d-4335-b8fd-81bee22f4814</uid>
@@ -1452,15 +1463,6 @@ var _ = Describe("Converter", func() {
 				MemBalloonStatsPeriod: 10,
 				EphemeraldiskCreator:  EphemeralDiskImageCreator,
 			}
-		})
-
-		It("should use virtio-transitional models if requested", func() {
-			v1.SetObjectDefaults_VirtualMachineInstance(vmi)
-			vmi.Spec.Domain.Devices.Rng = &v1.Rng{}
-			vmi.Spec.Domain.Devices.DisableHotplug = false
-			c.UseVirtioTransitional = true
-			dom := vmiToDomain(vmi, c)
-			testutils.ExpectVirtioTransitionalOnly(&dom.Spec)
 		})
 
 		It("should handle float memory", func() {
@@ -1716,7 +1718,7 @@ var _ = Describe("Converter", func() {
 			Expect(dom.Spec.Devices.Controllers).To(ContainElement(api.Controller{
 				Type:  "scsi",
 				Index: "0",
-				Model: "virtio-non-transitional",
+				Model: "virtio",
 				Driver: &api.ControllerDriver{
 					IOThread: &one,
 					Queues:   &one,
@@ -1736,7 +1738,7 @@ var _ = Describe("Converter", func() {
 			Expect(dom.Spec.Devices.Controllers).To(ContainElement(api.Controller{
 				Type:  "scsi",
 				Index: "0",
-				Model: "virtio-non-transitional",
+				Model: "virtio",
 			}))
 		})
 
@@ -1748,7 +1750,7 @@ var _ = Describe("Converter", func() {
 			Expect(dom.Spec.Devices.Controllers).ToNot(ContainElement(api.Controller{
 				Type:  "scsi",
 				Index: "0",
-				Model: "virtio-non-transitional",
+				Model: "virtio",
 			}))
 		})
 
@@ -2011,14 +2013,14 @@ var _ = Describe("Converter", func() {
 				if shouldEnableDebugLogs {
 					Expect(domain.Spec.QEMUCmd.QEMUArg).Should(ContainElements(
 						api.Arg{Value: "-chardev"},
-						api.Arg{Value: "file,id=firmwarelog,path=/tmp/qemu-firmware.log"},
+						api.Arg{Value: "file,id=firmwarelog,path=/var/run/kubevirt-private/QEMUSeaBiosDebugPipe"},
 						api.Arg{Value: "-device"},
 						api.Arg{Value: "isa-debugcon,iobase=0x402,chardev=firmwarelog"},
 					))
 				} else {
 					Expect(domain.Spec.QEMUCmd.QEMUArg).ShouldNot(Or(
 						ContainElements(api.Arg{Value: "-chardev"}),
-						ContainElements(api.Arg{Value: "file,id=firmwarelog,path=/tmp/qemu-firmware.log"}),
+						ContainElements(api.Arg{Value: "file,id=firmwarelog,path=/var/run/kubevirt-private/QEMUSeaBiosDebugPipe"}),
 						ContainElements(api.Arg{Value: "-device"}),
 						ContainElements(api.Arg{Value: "isa-debugcon,iobase=0x402,chardev=firmwarelog"}),
 					))
@@ -2026,7 +2028,7 @@ var _ = Describe("Converter", func() {
 
 			},
 			table.Entry("disabled - virtLauncherLogVerbosity does not exceed verbosity threshold", true, 0, false),
-			table.Entry("enabled - virtLaucherLogVerbosity exceeds verbosity threshold", true, 1, true),
+			table.Entry("enabled - virtLaucherLogVerbosity exceeds verbosity threshold", true, 6, true),
 			table.Entry("disabled - virtLauncherLogVerbosity variable is not defined", false, -1, false),
 		)
 
@@ -2100,7 +2102,7 @@ var _ = Describe("Converter", func() {
 
 			domain := vmiToDomain(vmi, c)
 			Expect(domain).ToNot(Equal(nil))
-			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(2))
+			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(6))
 		})
 		It("Should create two network configuration for slirp device", func() {
 			v1.SetObjectDefaults_VirtualMachineInstance(vmi)
@@ -2122,7 +2124,7 @@ var _ = Describe("Converter", func() {
 
 			domain := vmiToDomain(vmi, c)
 			Expect(domain).ToNot(Equal(nil))
-			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(4))
+			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(8))
 		})
 		It("Should create two network configuration one for slirp device and one for bridge device", func() {
 			v1.SetObjectDefaults_VirtualMachineInstance(vmi)
@@ -2144,10 +2146,10 @@ var _ = Describe("Converter", func() {
 
 			domain := vmiToDomain(vmi, c)
 			Expect(domain).ToNot(Equal(nil))
-			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(2))
+			Expect(len(domain.Spec.QEMUCmd.QEMUArg)).To(Equal(6))
 			Expect(len(domain.Spec.Devices.Interfaces)).To(Equal(2))
 			Expect(domain.Spec.Devices.Interfaces[0].Type).To(Equal("ethernet"))
-			Expect(domain.Spec.Devices.Interfaces[0].Model.Type).To(Equal("virtio-non-transitional"))
+			Expect(domain.Spec.Devices.Interfaces[0].Model.Type).To(Equal("virtio"))
 			Expect(domain.Spec.Devices.Interfaces[1].Type).To(Equal("user"))
 			Expect(domain.Spec.Devices.Interfaces[1].Model.Type).To(Equal("e1000"))
 		})
@@ -2389,7 +2391,7 @@ var _ = Describe("Converter", func() {
 
 	Context("graphics and video device", func() {
 
-		table.DescribeTable("should check autoAttachGraphicsDevices", func(autoAttach *bool, devices int, arch string) {
+		table.DescribeTable("should check autoAttachGraphicsDevices", func(autoAttach *bool, devices int, qemuArgs int, arch string) {
 
 			vmi := v1.VirtualMachineInstance{
 				ObjectMeta: k8smeta.ObjectMeta{
@@ -2414,7 +2416,10 @@ var _ = Describe("Converter", func() {
 			}
 			domain := vmiToDomain(&vmi, &ConverterContext{AllowEmulation: true, Architecture: arch})
 			Expect(domain.Spec.Devices.Video).To(HaveLen(devices))
-			Expect(domain.Spec.Devices.Graphics).To(HaveLen(devices))
+			if domain.Spec.QEMUCmd == nil {
+				domain.Spec.QEMUCmd = &api.Commandline{}
+			}
+			Expect(domain.Spec.QEMUCmd.QEMUArg).To(HaveLen(qemuArgs))
 
 			if isARM64(arch) && (autoAttach == nil || *autoAttach) {
 				Expect(domain.Spec.Devices.Video[0].Model.Type).To(Equal("virtio"))
@@ -2425,12 +2430,12 @@ var _ = Describe("Converter", func() {
 				Expect(domain.Spec.Devices.Video[0].Model.Type).To(Equal("vga"))
 			}
 		},
-			table.Entry("and add the graphics and video device if it is not set on amd64", nil, 1, "amd64"),
-			table.Entry("and add the graphics and video device if it is set to true on amd64", True(), 1, "amd64"),
-			table.Entry("and not add the graphics and video device if it is set to false on amd64", False(), 0, "amd64"),
-			table.Entry("and add the graphics and video device if it is not set on arm64", nil, 1, "arm64"),
-			table.Entry("and add the graphics and video device if it is set to true on arm64", True(), 1, "arm64"),
-			table.Entry("and not add the graphics and video device if it is set to false on arm64", False(), 0, "arm64"),
+			table.Entry("and add the graphics and video device if it is not set on amd64", nil, 1, 4, "amd64"),
+			table.Entry("and add the graphics and video device if it is set to true on amd64", True(), 1, 4, "amd64"),
+			table.Entry("and not add the graphics and video device if it is set to false on amd64", False(), 0, 0, "amd64"),
+			table.Entry("and add the graphics and video device if it is not set on arm64", nil, 1, 4, "arm64"),
+			table.Entry("and add the graphics and video device if it is set to true on arm64", True(), 1, 4, "arm64"),
+			table.Entry("and not add the graphics and video device if it is set to false on arm64", False(), 0, 0, "arm64"),
 		)
 	})
 
@@ -3173,7 +3178,7 @@ var _ = Describe("Converter", func() {
 			for _, controller := range domain.Spec.Devices.Controllers {
 				if controller.Type == "scsi" {
 					foundScsiController = true
-					Expect(controller.Model).To(Equal("virtio-non-transitional"))
+					Expect(controller.Model).To(Equal("virtio"))
 
 				}
 			}
