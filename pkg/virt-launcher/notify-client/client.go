@@ -236,7 +236,7 @@ func newWatchEventError(err error) watch.Event {
 }
 
 func eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEvent, client *Notifier, events chan watch.Event,
-	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze) {
+	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze, guestMMInfo *api.GuestMMInfo, guestDiskInfo []api.GuestDiskInfo) {
 	d, err := c.LookupDomainByName(util.DomainFromNamespaceName(domain.ObjectMeta.Namespace, domain.ObjectMeta.Name))
 	if err != nil {
 		if !domainerrors.IsNotFound(err) {
@@ -343,6 +343,13 @@ func eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEve
 			domain.Status.FSFreezeStatus = *fsFreezeStatus
 		}
 
+		if guestMMInfo != nil {
+			domain.Status.GuestMMInfo = *guestMMInfo
+		}
+
+		if len(guestDiskInfo) > 0 {
+			domain.Status.DiskInfo = guestDiskInfo
+		}
 		err := client.SendDomainEvent(watch.Event{Type: watch.Modified, Object: domain})
 		if err != nil {
 			log.Log.Reason(err).Error("Could not send domain notify event.")
@@ -378,6 +385,9 @@ func (n *Notifier) StartDomainNotifier(
 	qemuAgentUserInterval time.Duration,
 	qemuAgentVersionInterval time.Duration,
 	qemuAgentFSFreezeStatusInterval time.Duration,
+	qemuAgentMemoryInfoInterval time.Duration,
+	qemuAgentDiskInfoInterval time.Duration,
+
 ) error {
 
 	eventChan := make(chan libvirtEvent, 10)
@@ -398,6 +408,8 @@ func (n *Notifier) StartDomainNotifier(
 		qemuAgentUserInterval,
 		qemuAgentVersionInterval,
 		qemuAgentFSFreezeStatusInterval,
+		qemuAgentMemoryInfoInterval,
+		qemuAgentDiskInfoInterval,
 	)
 
 	// Run the event process logic in a separate go-routine to not block libvirt
@@ -405,11 +417,13 @@ func (n *Notifier) StartDomainNotifier(
 		var interfaceStatuses []api.InterfaceStatus
 		var guestOsInfo *api.GuestOSInfo
 		var fsFreezeStatus *api.FSFreeze
+		var guestMMInfo *api.GuestMMInfo
+		var guestDiskInfo []api.GuestDiskInfo
 		for {
 			select {
 			case event := <-eventChan:
 				domainCache = util.NewDomainFromName(event.Domain, vmi.UID)
-				eventCallback(domainConn, domainCache, event, n, deleteNotificationSent, interfaceStatuses, guestOsInfo, vmi, fsFreezeStatus)
+				eventCallback(domainConn, domainCache, event, n, deleteNotificationSent, interfaceStatuses, guestOsInfo, vmi, fsFreezeStatus, guestMMInfo, guestDiskInfo)
 				log.Log.Infof("Domain name event: %v", domainCache.Spec.Name)
 				if event.AgentEvent != nil {
 					if event.AgentEvent.State == libvirt.CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED {
@@ -422,12 +436,14 @@ func (n *Notifier) StartDomainNotifier(
 				interfaceStatuses = agentUpdate.DomainInfo.Interfaces
 				guestOsInfo = agentUpdate.DomainInfo.OSInfo
 				fsFreezeStatus = agentUpdate.DomainInfo.FSFreezeStatus
+				guestMMInfo = agentUpdate.DomainInfo.GuestMMInfo
+				guestDiskInfo = agentUpdate.DomainInfo.DiskInfo
 				if interfaceStatuses != nil {
 					interfaceStatuses = agentpoller.MergeAgentStatusesWithDomainData(domainCache.Spec.Devices.Interfaces, interfaceStatuses)
 				}
 
 				eventCallback(domainConn, domainCache, libvirtEvent{}, n, deleteNotificationSent,
-					interfaceStatuses, guestOsInfo, vmi, fsFreezeStatus)
+					interfaceStatuses, guestOsInfo, vmi, fsFreezeStatus, guestMMInfo, guestDiskInfo)
 			case <-reconnectChan:
 				n.SendDomainEvent(newWatchEventError(fmt.Errorf("Libvirt reconnect, domain %s", domainName)))
 			}

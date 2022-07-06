@@ -104,11 +104,20 @@ I/O read operations.
 ### kubevirt_vmi_storage_iops_write_total
 I/O write operations.
 
+### kubevirt_vmi_storage_physical
+Guest os  Physical block (byte)
+
 ### kubevirt_vmi_storage_read_times_ms_total
 Storage read operation time.
 
 ### kubevirt_vmi_storage_read_traffic_bytes_total
 Storage read traffic in bytes.
+
+### kubevirt_vmi_storage_total
+Guest os  total block capacity(byte)
+
+### kubevirt_vmi_storage_usage
+Guest os  used block (byte)
 
 ### kubevirt_vmi_storage_write_times_ms_total
 Storage write operation time.
@@ -118,9 +127,6 @@ Storage write traffic in bytes.
 
 ### kubevirt_vmi_vcpu_seconds
 Amount of time spent in each state by each vcpu. Where `id` is the vcpu identifier and `state` can be one of the following: [`OFFLINE`, `RUNNING`, `BLOCKED`].
-
-### kubevirt_vmi_vcpu_wait_seconds
-Amount of time spent by each vcpu while waiting on I/O.
 
 ## Developing new metrics
 After developing new metrics or changing old ones, please run `make generate` to regenerate this document.

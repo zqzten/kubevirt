@@ -359,6 +359,7 @@ func (app *virtHandlerApp) Run() {
 	)
 
 	promdomain.SetupDomainStatsCollector(app.virtCli, app.VirtShareDir, app.HostOverride, app.MaxRequestsInFlight, vmiSourceInformer)
+	promdomain.SetupGuestInfoCollector(app.HostOverride, app.MaxRequestsInFlight, vmiSourceInformer, domainSharedInformer)
 	if err := downwardmetrics.RunDownwardMetricsCollector(context.Background(), app.HostOverride, vmiSourceInformer, podIsolationDetector); err != nil {
 		panic(fmt.Errorf("failed to set up the downwardMetrics collector: %v", err))
 	}

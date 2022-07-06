@@ -112,6 +112,8 @@ type DomainStatus struct {
 	Interfaces     []InterfaceStatus
 	OSInfo         GuestOSInfo
 	FSFreezeStatus FSFreeze
+	DiskInfo       []GuestDiskInfo
+	GuestMMInfo    GuestMMInfo
 }
 
 type DomainSysInfo struct {
@@ -168,6 +170,21 @@ type DomainGuestInfo struct {
 	Interfaces     []InterfaceStatus
 	OSInfo         *GuestOSInfo
 	FSFreezeStatus *FSFreeze
+	DiskInfo       []GuestDiskInfo
+	GuestMMInfo    *GuestMMInfo
+}
+
+//分区信息
+type GuestDiskInfo struct {
+	Name    string
+	TotalKB int64
+	UsedKB  int64
+}
+
+//虚拟机里内存占用(KB)
+type GuestMMInfo struct {
+	TotalKB     int64
+	AvailableKB int64
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

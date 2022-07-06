@@ -334,7 +334,7 @@ func (_mr *_MockVirDomainRecorder) BlockResize(arg0, arg1, arg2 interface{}) *go
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "BlockResize", arg0, arg1, arg2)
 }
 
-func (_m *MockVirDomain) GetBlockInfo(disk string, flags uint32) (*libvirt.DomainBlockInfo, error) {
+func (_m *MockVirDomain) GetBlockInfo(disk string, flags uint) (*libvirt.DomainBlockInfo, error) {
 	ret := _m.ctrl.Call(_m, "GetBlockInfo", disk, flags)
 	ret0, _ := ret[0].(*libvirt.DomainBlockInfo)
 	ret1, _ := ret[1].(error)
