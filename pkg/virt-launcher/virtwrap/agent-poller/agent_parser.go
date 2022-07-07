@@ -322,48 +322,6 @@ func extractIPs(ipAddresses []IP) (string, []string) {
 	return interfaceIP, interfaceIPs
 }
 
-/*将df的输出转化成json字符串
-* df 输出如下:
-
-文件系统           1K-块     已用
-
-devtmpfs       197269476        0
-
-/dev/vda1      206292644 25647324
-
-/dev/vdb2      101655544  2174844
-
-/dev/vdb1      102687652 38276812
-
-tmpfs          197281688       12
-
-*/
-func parseDfOutput(output string) (disks []api.GuestDiskInfo) {
-	disks = make([]api.GuestDiskInfo, 0, 10)
-	output = strings.Trim(output, " ")
-	lines := strings.Split(output, "\n")
-	r := regexp.MustCompile(`[\s]*/dev/([\S]+)[\s]+([\d]+)[\s]+([\d]+)`)
-	for i := 1; i < len(lines); i++ {
-		matches := r.FindStringSubmatch(lines[i])
-		if len(matches) < 4 {
-			continue
-		}
-		disk := &api.GuestDiskInfo{
-			Name: matches[1],
-		}
-		total, err := strconv.Atoi(matches[2])
-		if err == nil {
-			disk.TotalKB = int64(total)
-		}
-		used, err := strconv.Atoi(matches[2])
-		if err == nil {
-			disk.UsedKB = int64(used)
-		}
-		disks = append(disks, *disk)
-	}
-	return
-}
-
 /*
 [root@virt-v6 ~]# cat /proc/meminfo
 MemTotal:       394563376 kB

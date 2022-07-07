@@ -120,25 +120,26 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 				prometheus.GaugeValue,
 				float64(domain.Status.GuestMMInfo.AvailableKB),
 			)
+			//qa低版本获取不到总容量、使用量等信息，需要使用3.0及以上
 			for i := 0; i < len(domain.Status.DiskInfo); i++ {
 				vmiMetrics.pushCustomMetric(
 					customlabelPrefix+"disk_total",
-					"guest os  total disk (byte)",
+					"guest os  total disk (KB)",
 					prometheus.GaugeValue,
-					float64(domain.Status.DiskInfo[i].TotalKB),
+					float64(domain.Status.DiskInfo[i].TotalBytes/1024),
 					[]string{"disk_name"},
 					[]string{
-						domain.Status.DiskInfo[i].Name,
+						domain.Status.DiskInfo[i].DiskName,
 					},
 				)
 				vmiMetrics.pushCustomMetric(
 					customlabelPrefix+"disk_usage",
-					"guest os  used disk (byte)",
+					"guest os  used disk (KB)",
 					prometheus.GaugeValue,
-					float64(domain.Status.DiskInfo[i].UsedKB),
+					float64(domain.Status.DiskInfo[i].UsedBytes/1024),
 					[]string{"disk_name"},
 					[]string{
-						domain.Status.DiskInfo[i].Name,
+						domain.Status.DiskInfo[i].DiskName,
 					},
 				)
 			}

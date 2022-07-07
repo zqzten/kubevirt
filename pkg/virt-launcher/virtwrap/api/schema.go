@@ -112,7 +112,7 @@ type DomainStatus struct {
 	Interfaces     []InterfaceStatus
 	OSInfo         GuestOSInfo
 	FSFreezeStatus FSFreeze
-	DiskInfo       []GuestDiskInfo
+	DiskInfo       []v1.VirtualMachineInstanceFileSystem
 	GuestMMInfo    GuestMMInfo
 }
 
@@ -170,15 +170,8 @@ type DomainGuestInfo struct {
 	Interfaces     []InterfaceStatus
 	OSInfo         *GuestOSInfo
 	FSFreezeStatus *FSFreeze
-	DiskInfo       []GuestDiskInfo
+	DiskInfo       []Filesystem
 	GuestMMInfo    *GuestMMInfo
-}
-
-//分区信息
-type GuestDiskInfo struct {
-	Name    string
-	TotalKB int64
-	UsedKB  int64
 }
 
 //虚拟机里内存占用(KB)

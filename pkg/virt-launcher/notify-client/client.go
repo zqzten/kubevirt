@@ -236,7 +236,7 @@ func newWatchEventError(err error) watch.Event {
 }
 
 func eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEvent, client *Notifier, events chan watch.Event,
-	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze, guestMMInfo *api.GuestMMInfo, guestDiskInfo []api.GuestDiskInfo) {
+	interfaceStatus []api.InterfaceStatus, osInfo *api.GuestOSInfo, vmi *v1.VirtualMachineInstance, fsFreezeStatus *api.FSFreeze, guestMMInfo *api.GuestMMInfo, guestDiskInfo []api.Filesystem) {
 	d, err := c.LookupDomainByName(util.DomainFromNamespaceName(domain.ObjectMeta.Namespace, domain.ObjectMeta.Name))
 	if err != nil {
 		if !domainerrors.IsNotFound(err) {
@@ -348,7 +348,18 @@ func eventCallback(c cli.Connection, domain *api.Domain, libvirtEvent libvirtEve
 		}
 
 		if len(guestDiskInfo) > 0 {
-			domain.Status.DiskInfo = guestDiskInfo
+			fsList := []v1.VirtualMachineInstanceFileSystem{}
+
+			for _, fs := range guestDiskInfo {
+				fsList = append(fsList, v1.VirtualMachineInstanceFileSystem{
+					DiskName:       fs.Name,
+					MountPoint:     fs.Mountpoint,
+					FileSystemType: fs.Type,
+					UsedBytes:      fs.UsedBytes,
+					TotalBytes:     fs.TotalBytes,
+				})
+			}
+			domain.Status.DiskInfo = fsList
 		}
 		err := client.SendDomainEvent(watch.Event{Type: watch.Modified, Object: domain})
 		if err != nil {
@@ -386,7 +397,6 @@ func (n *Notifier) StartDomainNotifier(
 	qemuAgentVersionInterval time.Duration,
 	qemuAgentFSFreezeStatusInterval time.Duration,
 	qemuAgentMemoryInfoInterval time.Duration,
-	qemuAgentDiskInfoInterval time.Duration,
 
 ) error {
 
@@ -409,7 +419,6 @@ func (n *Notifier) StartDomainNotifier(
 		qemuAgentVersionInterval,
 		qemuAgentFSFreezeStatusInterval,
 		qemuAgentMemoryInfoInterval,
-		qemuAgentDiskInfoInterval,
 	)
 
 	// Run the event process logic in a separate go-routine to not block libvirt
@@ -418,7 +427,7 @@ func (n *Notifier) StartDomainNotifier(
 		var guestOsInfo *api.GuestOSInfo
 		var fsFreezeStatus *api.FSFreeze
 		var guestMMInfo *api.GuestMMInfo
-		var guestDiskInfo []api.GuestDiskInfo
+		var guestDiskInfo []api.Filesystem
 		for {
 			select {
 			case event := <-eventChan:

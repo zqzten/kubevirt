@@ -145,7 +145,6 @@ func startDomainEventMonitoring(
 	qemuAgentVersionInterval time.Duration,
 	qemuAgentFSFreezeStatusInterval time.Duration,
 	qemuAgentMemoryInfoInterval time.Duration,
-	qemuAgentDiskInfoInterval time.Duration,
 ) {
 	go func() {
 		for {
@@ -156,7 +155,7 @@ func startDomainEventMonitoring(
 		}
 	}()
 
-	err := notifier.StartDomainNotifier(domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, qemuAgentMemoryInfoInterval, qemuAgentDiskInfoInterval)
+	err := notifier.StartDomainNotifier(domainConn, deleteNotificationSent, vmi, domainName, agentStore, qemuAgentSysInterval, qemuAgentFileInterval, qemuAgentUserInterval, qemuAgentVersionInterval, qemuAgentFSFreezeStatusInterval, qemuAgentMemoryInfoInterval)
 	if err != nil {
 		panic(err)
 	}
@@ -360,7 +359,6 @@ func main() {
 	qemuAgentVersionInterval := pflag.Duration("qemu-agent-version-interval", 300*time.Second, "Interval between consecutive qemu agent calls for version command")
 	qemuAgentFSFreezeStatusInterval := pflag.Duration("qemu-fsfreeze-status-interval", 5*time.Second, "Interval between consecutive qemu agent calls for fsfreeze status command")
 	qemuAgentMemoryInfoInterval := pflag.Duration("qemu-agent-memory-info-interval", 30*time.Second, "Interval between consecutive qemu agent calls for memory info  command")
-	qemuAgentDiskInfoInterval := pflag.Duration("qemu-agent-disk-info-interval", 30*time.Second, "Interval between consecutive qemu agent calls for disk info  command")
 	keepAfterFailure := pflag.Bool("keep-after-failure", false, "virt-launcher will be kept alive after failure for debugging if set to true")
 	simulateCrash := pflag.Bool("simulate-crash", false, "Causes virt-launcher to immediately crash. This is used by functional tests to simulate crash loop scenarios.")
 	libvirtLogFilters := pflag.String("libvirt-log-filters", "", "Set custom log filters for libvirt")
@@ -479,7 +477,7 @@ func main() {
 
 	events := make(chan watch.Event, 2)
 	// Send domain notifications to virt-handler
-	startDomainEventMonitoring(notifier, *virtShareDir, domainConn, events, vmi, domainName, &agentStore, *qemuAgentSysInterval, *qemuAgentFileInterval, *qemuAgentUserInterval, *qemuAgentVersionInterval, *qemuAgentFSFreezeStatusInterval, *qemuAgentMemoryInfoInterval, *qemuAgentDiskInfoInterval)
+	startDomainEventMonitoring(notifier, *virtShareDir, domainConn, events, vmi, domainName, &agentStore, *qemuAgentSysInterval, *qemuAgentFileInterval, *qemuAgentUserInterval, *qemuAgentVersionInterval, *qemuAgentFSFreezeStatusInterval, *qemuAgentMemoryInfoInterval)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt,

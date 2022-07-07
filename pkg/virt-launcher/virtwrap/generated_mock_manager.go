@@ -270,16 +270,6 @@ func (_mr *_MockDomainManagerRecorder) GetGuestMMInfo() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetGuestMMInfo")
 }
 
-func (_m *MockDomainManager) GetGuestDiskInfo() []api.GuestDiskInfo {
-	ret := _m.ctrl.Call(_m, "GetGuestDiskInfo")
-	ret0, _ := ret[0].([]api.GuestDiskInfo)
-	return ret0
-}
-
-func (_mr *_MockDomainManagerRecorder) GetGuestDiskInfo() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetGuestDiskInfo")
-}
-
 func (_m *MockDomainManager) Exec(_param0 string, _param1 string, _param2 []string, _param3 int32) (string, error) {
 	ret := _m.ctrl.Call(_m, "Exec", _param0, _param1, _param2, _param3)
 	ret0, _ := ret[0].(string)

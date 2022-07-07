@@ -55,7 +55,6 @@ const (
 	GET_FILESYSTEM      AgentCommand = "guest-get-fsinfo"
 	GET_AGENT           AgentCommand = "guest-info"
 	GET_FSFREEZE_STATUS AgentCommand = "guest-fsfreeze-status"
-	GET_EXEC_DISK       AgentCommand = "guest-exec-disk"
 	GET_EXEC_MM         AgentCommand = "guest-exec-mm"
 	pollInitialInterval              = 10 * time.Second
 )
@@ -64,7 +63,6 @@ var (
 	OSKernelLinux   OSKernel = "linux"
 	OSKernelWin     OSKernel = "win"
 	OSKernelUnknown OSKernel = "unknown"
-	LinuxDiskCMD             = NewAgentExecCommandAndArgs("df", []string{"--output=source,size,used"})
 	LinuxMMCMD               = NewAgentExecCommandAndArgs("cat", []string{"/proc/meminfo"})
 )
 
@@ -112,8 +110,8 @@ func (s *AsyncAgentStore) Store(key AgentCommand, value interface{}) {
 		case GET_FSFREEZE_STATUS:
 			status := value.(api.FSFreeze)
 			domainInfo.FSFreezeStatus = &status
-		case GET_EXEC_DISK:
-			info := value.([]api.GuestDiskInfo)
+		case GET_FILESYSTEM:
+			info := value.([]api.Filesystem)
 			domainInfo.DiskInfo = info
 		case GET_EXEC_MM:
 			info := value.(api.GuestMMInfo)
@@ -189,10 +187,10 @@ func (s *AsyncAgentStore) GetGuestMMInfo() *api.GuestMMInfo {
 	return nil
 }
 
-func (s *AsyncAgentStore) GetGuestDiskInfo() []api.GuestDiskInfo {
-	data, ok := s.store.Load(GET_EXEC_DISK)
+func (s *AsyncAgentStore) GetGuestDiskInfo() []api.Filesystem {
+	data, ok := s.store.Load(GET_FILESYSTEM)
 	if ok {
-		diskInfo := data.([]api.GuestDiskInfo)
+		diskInfo := data.([]api.Filesystem)
 		return diskInfo
 	}
 
@@ -330,7 +328,6 @@ func CreatePoller(
 	qemuAgentVersionInterval time.Duration,
 	qemuAgentFSFreezeStatusInterval time.Duration,
 	qemuAgentMemoryInfoInterval time.Duration,
-	qemuAgentDiskInfoInterval time.Duration,
 ) *AgentPoller {
 	p := &AgentPoller{
 		Connection: connecton,
@@ -366,10 +363,6 @@ func CreatePoller(
 		AgentCommands: []AgentCommand{GET_FSFREEZE_STATUS},
 	})
 	//exec command group
-	p.workers = append(p.workers, PollerWorker{
-		CallTick:      qemuAgentDiskInfoInterval,
-		AgentCommands: []AgentCommand{GET_EXEC_DISK},
-	})
 	p.workers = append(p.workers, PollerWorker{
 		CallTick:      qemuAgentMemoryInfoInterval,
 		AgentCommands: []AgentCommand{GET_EXEC_MM},
@@ -407,13 +400,6 @@ func executeAgentCommands(commands []AgentCommand, con cli.Connection, agentStor
 		var cmdResult string
 		var err error
 		switch command {
-		case GET_EXEC_DISK:
-			switch judgeOSKernel(agentStore.GetGuestOSInfo()) {
-			case OSKernelLinux:
-				cmdResult, err = agent.GuestExec(con, domainName, LinuxDiskCMD.Path, LinuxDiskCMD.Args, 2)
-			default:
-				cmdResult, err = agent.GuestExec(con, domainName, LinuxDiskCMD.Path, LinuxDiskCMD.Args, 2)
-			}
 		case GET_EXEC_MM:
 			switch judgeOSKernel(agentStore.GetGuestOSInfo()) {
 			case OSKernelLinux:
@@ -481,9 +467,6 @@ func executeAgentCommands(commands []AgentCommand, con cli.Connection, agentStor
 				log.Log.Errorf("Cannot parse guest agent information %s", err.Error())
 			}
 			agentStore.Store(GET_AGENT, agent)
-		case GET_EXEC_DISK:
-			diskInfo := parseDfOutput(cmdResult)
-			agentStore.Store(GET_EXEC_DISK, diskInfo)
 		case GET_EXEC_MM:
 			mmInfo := parseMMOutput(cmdResult)
 			agentStore.Store(GET_EXEC_MM, mmInfo)

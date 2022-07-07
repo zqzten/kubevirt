@@ -129,7 +129,6 @@ type DomainManager interface {
 	InterfacesStatus(domainInterfaces []api.Interface) []api.InterfaceStatus
 	GetGuestOSInfo() *api.GuestOSInfo
 	GetGuestMMInfo() *api.GuestMMInfo
-	GetGuestDiskInfo() []api.GuestDiskInfo
 	Exec(string, string, []string, int32) (string, error)
 	GuestPing(string) error
 }
@@ -1704,9 +1703,6 @@ func (l *LibvirtDomainManager) GetGuestOSInfo() *api.GuestOSInfo {
 
 func (l *LibvirtDomainManager) GetGuestMMInfo() *api.GuestMMInfo {
 	return l.agentData.GetGuestMMInfo()
-}
-func (l *LibvirtDomainManager) GetGuestDiskInfo() []api.GuestDiskInfo {
-	return l.agentData.GetGuestDiskInfo()
 }
 
 // GetUsers return the full list of users on the guest machine
