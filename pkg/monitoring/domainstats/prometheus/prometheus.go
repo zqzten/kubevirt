@@ -315,7 +315,7 @@ func (metrics *vmiMetrics) updateBlock(blkStats []stats.DomainStatsBlock) {
 				prometheus.GaugeValue,
 				float64(block.Capacity),
 				blkLabels,
-				[]string{block.Name},
+				blkLabelValues,
 			)
 		}
 		if block.AllocationSet {
@@ -325,7 +325,7 @@ func (metrics *vmiMetrics) updateBlock(blkStats []stats.DomainStatsBlock) {
 				prometheus.GaugeValue,
 				float64(block.Allocation),
 				blkLabels,
-				[]string{block.Name},
+				blkLabelValues,
 			)
 		}
 		if block.PhysicalSet {
@@ -335,7 +335,7 @@ func (metrics *vmiMetrics) updateBlock(blkStats []stats.DomainStatsBlock) {
 				prometheus.GaugeValue,
 				float64(block.Physical),
 				blkLabels,
-				[]string{block.Name},
+				blkLabelValues,
 			)
 		}
 	}

@@ -31,39 +31,10 @@ import (
 	"kubevirt.io/client-go/log"
 )
 
-type OSKernel string
-
 var (
 	customlabelPrefix = "kubevirt_vmi_"
 	// string default value
 	defaultValue = 1.0
-	//kernel version
-	OS                       = customlabelPrefix + "OS"
-	OSHelp                   = "guest os kernel info"
-	OSLabels                 = []string{"kernel_version", "kernel_release", "machine", "kernel_name"}
-	OSKernelLinux   OSKernel = "linux"
-	OSKernelWin     OSKernel = "win"
-	OSKernelUnknown OSKernel = "unknown"
-	//cpu info
-	CPUUtilization     = customlabelPrefix + "CPU_utilization"
-	CPUUtilizationHelp = "guest os cpu utilization"
-	//guest inside memory info
-	memoryAvailable     = customlabelPrefix + "mm_available"
-	memoryAvailableHelp = "guest os  available memory (KB)"
-
-	//disk info
-	diskTotal       = customlabelPrefix + "disk_total"
-	diskTotalHelp   = "guest os  total disk (byte)"
-	diskTotalLabels = []string{"disk_name"}
-
-	diskUsed       = customlabelPrefix + "disk_usage"
-	diskUsedHelp   = "guest os  used disk (byte)"
-	diskUsedLabels = []string{"disk_name"}
-
-	//guest state
-	guestState       = customlabelPrefix + "guest_state"
-	guestStateHelp   = "guest state"
-	guestStateLabels = []string{"guest_state"}
 )
 
 var (
@@ -121,21 +92,21 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 		if domainInf, exist, err := co.domainInformer.GetStore().GetByKey(controller.VirtualMachineInstanceKey(vmi)); exist && err == nil {
 			domain := domainInf.(*api.Domain)
 			vmiMetrics.pushCustomMetric(
-				guestState,
-				guestStateHelp,
+				customlabelPrefix+"guest_state",
+				"guest state",
 				prometheus.GaugeValue,
 				float64(guestStateToInt(domain.Status.Status)),
-				guestStateLabels,
+				[]string{"guest_state"},
 				[]string{
 					string(domain.Status.Status),
 				},
 			)
 			vmiMetrics.pushCustomMetric(
-				OS,
-				OSHelp,
+				customlabelPrefix+"OS",
+				"guest os kernel info",
 				prometheus.GaugeValue,
 				defaultValue,
-				OSLabels,
+				[]string{"kernel_version", "kernel_release", "machine", "kernel_name"},
 				[]string{
 					domain.Status.OSInfo.KernelVersion,
 					domain.Status.OSInfo.KernelRelease,
@@ -144,28 +115,28 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 				},
 			)
 			vmiMetrics.pushCommonMetric(
-				memoryAvailable,
-				memoryAvailableHelp,
+				customlabelPrefix+"mm_available",
+				"guest os  available memory (KB)",
 				prometheus.GaugeValue,
 				float64(domain.Status.GuestMMInfo.AvailableKB),
 			)
 			for i := 0; i < len(domain.Status.DiskInfo); i++ {
 				vmiMetrics.pushCustomMetric(
-					diskTotal,
-					diskTotalHelp,
+					customlabelPrefix+"disk_total",
+					"guest os  total disk (byte)",
 					prometheus.GaugeValue,
 					float64(domain.Status.DiskInfo[i].TotalKB),
-					diskTotalLabels,
+					[]string{"disk_name"},
 					[]string{
 						domain.Status.DiskInfo[i].Name,
 					},
 				)
 				vmiMetrics.pushCustomMetric(
-					diskUsed,
-					diskUsedHelp,
+					customlabelPrefix+"disk_usage",
+					"guest os  used disk (byte)",
 					prometheus.GaugeValue,
 					float64(domain.Status.DiskInfo[i].UsedKB),
-					diskUsedLabels,
+					[]string{"disk_name"},
 					[]string{
 						domain.Status.DiskInfo[i].Name,
 					},
@@ -173,19 +144,6 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 	}
-}
-
-type diskInfo struct {
-	Name string `json:"name,omitempty"`
-	//Mount   string `json:"mount,omitempty"`
-	TotalKB int64 `json:"totalKB,omitempty"`
-	UsedKB  int64 `json:"usedKB,omitempty"`
-}
-
-//虚拟机里内存占用(KB)
-type guestMM struct {
-	TotalKB     int64 `json:"totalKB,omitempty"`
-	AvailableKB int64 `json:"AvailableKB,omitempty"`
 }
 
 func guestStateToInt(state api.LifeCycle) int {

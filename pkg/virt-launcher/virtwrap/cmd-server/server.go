@@ -388,7 +388,6 @@ func (l *Launcher) GetDomain(_ context.Context, _ *cmdv1.EmptyRequest) (*cmdv1.D
 		}
 		if mmInfo := l.domainManager.GetGuestMMInfo(); mmInfo != nil {
 			domainObj.Status.GuestMMInfo = *mmInfo
-
 		}
 		if diskInfo := l.domainManager.GetGuestDiskInfo(); diskInfo != nil {
 			domainObj.Status.DiskInfo = diskInfo
