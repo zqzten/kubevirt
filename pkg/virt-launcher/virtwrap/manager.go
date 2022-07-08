@@ -128,6 +128,7 @@ type DomainManager interface {
 	HotplugHostDevices(vmi *v1.VirtualMachineInstance) error
 	InterfacesStatus(domainInterfaces []api.Interface) []api.InterfaceStatus
 	GetGuestOSInfo() *api.GuestOSInfo
+	GetGuestMMInfo() *api.GuestMMInfo
 	Exec(string, string, []string, int32) (string, error)
 	GuestPing(string) error
 }
@@ -1698,6 +1699,10 @@ func (l *LibvirtDomainManager) InterfacesStatus(domainInterfaces []api.Interface
 // GetGuestOSInfo returns the Guest OS version and architecture
 func (l *LibvirtDomainManager) GetGuestOSInfo() *api.GuestOSInfo {
 	return l.agentData.GetGuestOSInfo()
+}
+
+func (l *LibvirtDomainManager) GetGuestMMInfo() *api.GuestMMInfo {
+	return l.agentData.GetGuestMMInfo()
 }
 
 // GetUsers return the full list of users on the guest machine

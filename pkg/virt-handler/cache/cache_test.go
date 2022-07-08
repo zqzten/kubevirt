@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
+	v1 "kubevirt.io/api/core/v1"
 	diskutils "kubevirt.io/kubevirt/pkg/ephemeral-disk-utils"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
 	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
@@ -215,7 +216,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return(list, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(&api.GuestOSInfo{})
 			domainManager.EXPECT().InterfacesStatus(list[0].Spec.Devices.Interfaces).Return([]api.InterfaceStatus{})
-
+			domainManager.EXPECT().GetFilesystems().Return([]v1.VirtualMachineInstanceFileSystem{}, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(&api.GuestMMInfo{})
 			runCMDServer(wg, socketPath, domainManager, stopChan, nil)
 
 			// ensure we can connect to the server first.
@@ -242,7 +244,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return(list, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(&api.GuestOSInfo{})
 			domainManager.EXPECT().InterfacesStatus(list[0].Spec.Devices.Interfaces).Return([]api.InterfaceStatus{})
-
+			domainManager.EXPECT().GetFilesystems().Return([]v1.VirtualMachineInstanceFileSystem{}, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(&api.GuestMMInfo{})
 			err := AddGhostRecord("test1-namespace", "test1", "somefile1", "1234-1")
 			Expect(err).ToNot(HaveOccurred())
 			runCMDServer(wg, socketPath, domainManager, stopChan, nil)
@@ -272,7 +275,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return(list, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(&api.GuestOSInfo{})
 			domainManager.EXPECT().InterfacesStatus(list[0].Spec.Devices.Interfaces).Return([]api.InterfaceStatus{})
-
+			domainManager.EXPECT().GetFilesystems().Return([]v1.VirtualMachineInstanceFileSystem{}, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(&api.GuestMMInfo{})
 			runCMDServer(wg, socketPath, domainManager, stopChan, nil)
 
 			// ensure we can connect to the server first.
@@ -292,6 +296,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return([]*api.Domain{domain}, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(&api.GuestOSInfo{})
 			domainManager.EXPECT().InterfacesStatus(domain.Spec.Devices.Interfaces).Return([]api.InterfaceStatus{})
+			domainManager.EXPECT().GetFilesystems().Return([]v1.VirtualMachineInstanceFileSystem{}, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(&api.GuestMMInfo{})
 			// now prove if we make a change, like adding a label, that the resync
 			// will pick that change up automatically
 			newDomain := domain.DeepCopy()
@@ -300,7 +306,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return([]*api.Domain{newDomain}, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(nil)
 			domainManager.EXPECT().InterfacesStatus(newDomain.Spec.Devices.Interfaces).Return(nil)
-
+			domainManager.EXPECT().GetFilesystems().Return(newDomain.Status.DiskInfo, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(nil)
 			runCMDServer(wg, socketPath, domainManager, stopChan, nil)
 
 			// ensure we can connect to the server first.
@@ -448,7 +455,8 @@ var _ = Describe("Domain informer", func() {
 			domainManager.EXPECT().ListAllDomains().Return(list, nil)
 			domainManager.EXPECT().GetGuestOSInfo().Return(&api.GuestOSInfo{})
 			domainManager.EXPECT().InterfacesStatus(list[0].Spec.Devices.Interfaces).Return([]api.InterfaceStatus{})
-
+			domainManager.EXPECT().GetFilesystems().Return([]v1.VirtualMachineInstanceFileSystem{}, nil)
+			domainManager.EXPECT().GetGuestMMInfo().Return(&api.GuestMMInfo{})
 			// This file doesn't have a unix sock server behind it
 			// verify list still completes regardless
 			f, err := os.Create(filepath.Join(socketsDir, "default_fakevm_sock"))
