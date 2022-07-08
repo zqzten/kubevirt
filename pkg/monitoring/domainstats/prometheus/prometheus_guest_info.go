@@ -93,7 +93,7 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 			domain := domainInf.(*api.Domain)
 			vmiMetrics.pushCustomMetric(
 				customlabelPrefix+"guest_state",
-				"guest state",
+				"guest state:'NoState:1,Running:2,Blocked:3,Paused:4,ShuttingDown:5,Shutoff:6,Crashed:7,PMSuspended:8'",
 				prometheus.GaugeValue,
 				float64(guestStateToInt(domain.Status.Status)),
 				[]string{"guest_state"},
@@ -124,9 +124,9 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 			for i := 0; i < len(domain.Status.DiskInfo); i++ {
 				vmiMetrics.pushCustomMetric(
 					customlabelPrefix+"disk_total",
-					"guest os  total disk (KB)",
+					"guest os disk capacity (byte)",
 					prometheus.GaugeValue,
-					float64(domain.Status.DiskInfo[i].TotalBytes/1024),
+					float64(domain.Status.DiskInfo[i].TotalBytes),
 					[]string{"disk_name"},
 					[]string{
 						domain.Status.DiskInfo[i].DiskName,
@@ -134,9 +134,9 @@ func (co *GuestExtraCollector) Collect(ch chan<- prometheus.Metric) {
 				)
 				vmiMetrics.pushCustomMetric(
 					customlabelPrefix+"disk_usage",
-					"guest os  used disk (KB)",
+					"guest os disk usage (byte)",
 					prometheus.GaugeValue,
-					float64(domain.Status.DiskInfo[i].UsedBytes/1024),
+					float64(domain.Status.DiskInfo[i].UsedBytes),
 					[]string{"disk_name"},
 					[]string{
 						domain.Status.DiskInfo[i].DiskName,

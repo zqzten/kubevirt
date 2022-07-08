@@ -397,7 +397,6 @@ func (n *Notifier) StartDomainNotifier(
 	qemuAgentVersionInterval time.Duration,
 	qemuAgentFSFreezeStatusInterval time.Duration,
 	qemuAgentMemoryInfoInterval time.Duration,
-
 ) error {
 
 	eventChan := make(chan libvirtEvent, 10)

@@ -4,7 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "prometheus.go",
-        "prometheus_custom_info.go",
+        "prometheus_guest_info.go",
     ],
     importpath = "kubevirt.io/kubevirt/pkg/monitoring/domainstats/prometheus",
     visibility = ["//visibility:public"],
