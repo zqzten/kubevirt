@@ -72,19 +72,6 @@ func (rad *RouterAdvertiser) SendRouterAdvertisement() error {
 	return nil
 }
 
-func (rad *RouterAdvertiser) PeriodicallySendRAs() {
-	ticker := time.NewTicker(routerAdvertisementPeriod)
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := rad.SendRouterAdvertisement(); err != nil {
-				log.Log.Warningf("failed to send periodic RouterAdvertisement: %v", err)
-			}
-		}
-	}
-}
-
 func prepareRAOptions(prefix net.IP, prefixLength uint8, routerMACAddr net.HardwareAddr, dhcpOptions *v1.DHCPOptions) []ndp.Option {
 	prefixInfo := &ndp.PrefixInformation{
 		PrefixLength:                   prefixLength,

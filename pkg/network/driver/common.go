@@ -517,10 +517,6 @@ func (h *NetworkUtilsHandler) startRouterAdvertiser(nic *cache.DHCPConfig, bridg
 		}
 	}()
 
-	go func() {
-		routerAdvertiser.PeriodicallySendRAs()
-	}()
-
 	return nil
 }
 
