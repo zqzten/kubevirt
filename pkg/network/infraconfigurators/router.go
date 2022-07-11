@@ -181,7 +181,11 @@ func (b *RouterPodNetworkConfigurator) GenerateNonRecoverableDHCPConfig() *cache
 
 	if b.ipv4Enabled {
 		log.Log.V(4).Infof("got to add %d ipv4 routes to the DhcpConfig", len(b.podIfaceIPv4Routes))
-		dhcpConfig.IP = b.podIPv4Addr
+		ipv4Addr, err := netlink.ParseAddr(fmt.Sprintf("%s/%d", b.podIPv4Addr.IP.String(), 8*net.IPv4len))
+		if err != nil {
+			log.Log.Errorf("failed to parse IPv4 addr(%s): %v", b.podIPv4Addr.String(), err)
+		}
+		dhcpConfig.IP = *ipv4Addr
 		if len(b.podIfaceIPv4Routes) > 1 {
 			dhcpRoutes := virtnetlink.FilterPodNetworkRoutes(b.podIfaceIPv4Routes, dhcpConfig)
 			dhcpConfig.Routes = &dhcpRoutes
@@ -191,7 +195,11 @@ func (b *RouterPodNetworkConfigurator) GenerateNonRecoverableDHCPConfig() *cache
 
 	if b.ipv6Enabled {
 		log.Log.V(4).Infof("got to add %d ipv6 routes to the DhcpConfig", len(b.podIfaceIPv6Routes))
-		dhcpConfig.IPv6 = b.podIPv6Addr
+		ipv6Addr, err := netlink.ParseAddr(fmt.Sprintf("%s/%d", b.podIPv6Addr.IP.String(), 8*net.IPv6len))
+		if err != nil {
+			log.Log.Errorf("failed to parse IPv6 addr(%s): %v", b.podIPv6Addr.String(), err)
+		}
+		dhcpConfig.IPv6 = *ipv6Addr
 		if len(b.podIfaceIPv6Routes) > 1 {
 			dhcpRoutes := virtnetlink.FilterPodNetworkRoutes(b.podIfaceIPv6Routes, dhcpConfig)
 			dhcpConfig.IPv6Routes = &dhcpRoutes

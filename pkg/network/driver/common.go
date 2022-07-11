@@ -501,7 +501,7 @@ func (h *NetworkUtilsHandler) startRouterAdvertiser(nic *cache.DHCPConfig, bridg
 		return err
 	}
 
-	advertiseIPv6Addr := fmt.Sprintf("%s/%d", nic.IPv6.IP.String(), 8*net.IPv6len)
+	advertiseIPv6Addr := nic.IPv6.IPNet.String()
 	routerSourceMacAddr := bridge.Attrs().HardwareAddr
 	log.Log.Infof("will advertise %s on interface %s w/ the following link src addr: %s", advertiseIPv6Addr, bridgeInterfaceName, routerSourceMacAddr.String())
 
