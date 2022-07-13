@@ -318,6 +318,7 @@ func (l *LibvirtConnection) GetDomainStats(statsTypes libvirt.DomainStatsTypes, 
 	return list, nil
 }
 
+//TODO:目前libvirt反序列化domSpec会有空指针问题，等待修复后再将这里的指针判断还原
 func (l *LibvirtConnection) GetDeviceAliasMap(domain *libvirt.Domain) (map[string]string, error) {
 	devAliasMap := make(map[string]string)
 
@@ -332,10 +333,16 @@ func (l *LibvirtConnection) GetDeviceAliasMap(domain *libvirt.Domain) (map[strin
 	}
 
 	for _, iface := range domSpec.Devices.Interfaces {
+		if iface.Target == nil || iface.Alias == nil {
+			continue
+		}
 		devAliasMap[iface.Target.Device] = iface.Alias.GetName()
 	}
 
 	for _, disk := range domSpec.Devices.Disks {
+		if disk.Alias == nil {
+			continue
+		}
 		devAliasMap[disk.Target.Device] = disk.Alias.GetName()
 	}
 
