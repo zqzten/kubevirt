@@ -365,6 +365,13 @@ func (b *RouterPodNetworkConfigurator) configureNeighbourReply() error {
 	}
 
 	if b.ipv6Enabled {
+		// MUST enable to answer unicast Neighbor Solicitation
+		// https://github.com/lxc/lxd/issues/6668
+		if err := b.handler.EnableIpv6NdpProxyForAll(); err != nil {
+			return err
+		}
+
+		// MUST enable to answer multicast Neighbor Solicitation
 		if err := b.handler.EnableIpv6NdpProxyOnIface(b.podNicLink.Attrs().Name); err != nil {
 			return err
 		}

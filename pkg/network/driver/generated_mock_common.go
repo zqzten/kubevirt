@@ -427,6 +427,16 @@ func (_mr *_MockNetworkHandlerRecorder) EnableIpv6NdpProxyOnIface(arg0 interface
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "EnableIpv6NdpProxyOnIface", arg0)
 }
 
+func (_m *MockNetworkHandler) EnableIpv6NdpProxyForAll() error {
+	ret := _m.ctrl.Call(_m, "EnableIpv6NdpProxyForAll")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockNetworkHandlerRecorder) EnableIpv6NdpProxyForAll() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "EnableIpv6NdpProxyForAll")
+}
+
 func (_m *MockNetworkHandler) GetDefaultGateway(family int) (net.IP, error) {
 	ret := _m.ctrl.Call(_m, "GetDefaultGateway", family)
 	ret0, _ := ret[0].(net.IP)

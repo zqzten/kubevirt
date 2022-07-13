@@ -97,6 +97,7 @@ type NetworkHandler interface {
 	EnableIPv6Flags() error
 	EnableIpv4ArpProxyOnIface(ifaceName string) error
 	EnableIpv6NdpProxyOnIface(ifaceName string) error
+	EnableIpv6NdpProxyForAll() error
 	GetDefaultGateway(family int) (net.IP, error)
 }
 
@@ -214,6 +215,10 @@ func (h *NetworkUtilsHandler) EnableIPv6Flags() error {
 
 func (h *NetworkUtilsHandler) EnableIpv6NdpProxyOnIface(ifaceName string) error {
 	return sysctl.New().SetSysctl(fmt.Sprintf(sysctl.Ipv6ProxyNdpTpl, ifaceName), 1)
+}
+
+func (h *NetworkUtilsHandler) EnableIpv6NdpProxyForAll() error {
+	return sysctl.New().SetSysctl(fmt.Sprintf(sysctl.Ipv6ProxyNdpTpl, "all"), 1)
 }
 
 func (h *NetworkUtilsHandler) ConfigureIpForwarding(proto iptables.Protocol) error {
